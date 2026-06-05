@@ -48,6 +48,10 @@ const commands = [
   { usage: '/memory', description: 'Show persistent memory', run: () => selectSidebarTab('memory') },
   { usage: '/agent on', description: 'Enable agent tools', run: () => setAgent(true) },
   { usage: '/agent off', description: 'Disable agent tools', run: () => setAgent(false) },
+  { usage: '/sandbox off', description: 'Disable tool sandboxing', run: () => setSandbox('off') },
+  { usage: '/sandbox jail', description: 'Confine tools to the working directory', run: () => setSandbox('jail') },
+  { usage: '/sandbox docker', description: 'Run shell in a Docker container', run: () => setSandbox('docker') },
+  { usage: '/image', description: 'Show or set the image-generation model', run: () => setImageModel('') },
   { usage: '/tools', description: 'Show desktop agent tools', run: () => showToolHelp() },
   { usage: '/clear', description: 'Clear the current desktop transcript', run: () => newChat() },
   { usage: '/config', description: 'Open provider configuration', run: () => openSettings() },
@@ -66,6 +70,40 @@ async function setAgent(enabled) {
   state.snapshot.config = await window.goldid.setAgent(enabled);
   renderStatus();
   showNotice(`Agent tools ${enabled ? 'enabled' : 'disabled'}.`);
+}
+
+async function setSandbox(mode) {
+  const m = (mode || '').toLowerCase();
+  if (!['off', 'jail', 'docker'].includes(m)) {
+    const cur = state.snapshot.config.agent?.sandbox || 'off';
+    showNotice(`Sandbox: ${cur}\n\nUse /sandbox off | jail | docker.`);
+    return;
+  }
+  try {
+    state.snapshot.config = await window.goldid.setSandbox(m);
+    renderStatus();
+    showNotice(m === 'off' ? 'Sandbox disabled.' : `Sandbox set to ${m}.`);
+  } catch (error) {
+    showNotice(error.message || String(error));
+  }
+}
+
+async function setImageModel(model) {
+  if (!model) {
+    const cur = state.snapshot.config.agent?.imageModel || '';
+    showNotice(cur
+      ? `Image model: ${cur}\n\nChange with /image <model>, clear with /image clear.`
+      : 'No image model set — generate_image uses a provider default.\n\nSet one with /image <model>.');
+    return;
+  }
+  const clear = /^(none|clear|default|off|reset)$/i.test(model);
+  try {
+    state.snapshot.config = await window.goldid.setImageModel(clear ? '' : model);
+    renderStatus();
+    showNotice(clear ? 'Image model cleared — using the provider default.' : `Image model set to ${model}.`);
+  } catch (error) {
+    showNotice(error.message || String(error));
+  }
 }
 
 function showNotice(text) {
@@ -94,6 +132,7 @@ function showToolHelp() {
     'find_files       Find files recursively',
     'search_text      Search inside files',
     'web_search       Search the web',
+    'generate_image   Generate an image from a prompt (approval required)',
     'write_file       Create or overwrite a file (approval required)',
     'shell            Run a command (approval required)',
   ].join('\n');
@@ -130,7 +169,13 @@ async function executeCommand(command) {
 }
 
 async function executeTypedCommand(text) {
-  const normalized = text.trim().toLowerCase();
+  const trimmed = text.trim();
+  const normalized = trimmed.toLowerCase();
+  // Parametric commands carry an argument the fixed menu entries can't.
+  const sbMatch = normalized.match(/^\/sandbox(?:\s+(\S+))?$/);
+  if (sbMatch) { await setSandbox(sbMatch[1] || ''); $('messageInput').value = ''; return true; }
+  const imgMatch = trimmed.match(/^\/image(?:\s+(.+))?$/i);
+  if (imgMatch) { await setImageModel((imgMatch[1] || '').trim()); $('messageInput').value = ''; return true; }
   const command = commands.find((item) => item.usage === normalized);
   if (!command) {
     showNotice(`Unknown command: ${text}\n\nUse /help to see desktop commands.`);

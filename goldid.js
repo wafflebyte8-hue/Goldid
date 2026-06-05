@@ -363,7 +363,9 @@ async function runTool(call, ctx) {
     const key = cfg.active.provider;
     if (!key) throw new Error('no provider configured — run /setup first');
     const conf = config.providerConf(cfg, key);
-    return providers.generateImage(key, conf, opts.model, prompt, { size: opts.size });
+    // Model precedence: explicit tool arg → configured /image model → provider default.
+    const model = opts.model || cfg.agent?.imageModel || undefined;
+    return providers.generateImage(key, conf, model, prompt, { size: opts.size });
   };
   // Apply the active sandbox: confine path args to the jail root, and give the
   // shell tool a wrapper that pins its cwd (jail) or containerizes it (docker).
@@ -913,6 +915,28 @@ function sandboxCmd(args) {
   }
 }
 
+function imageCmd(args) {
+  const cfg = config.load();
+  const cur = cfg.agent && cfg.agent.imageModel;
+  const a = (args[0] || '').trim();
+  if (!a) {
+    if (cur) ui.kv('image model', ui.amber(cur));
+    else ui.info('No image model set — generate_image uses a per-provider default.');
+    ui.info('set one with /image <model>, or /image clear to use the default');
+    return;
+  }
+  if (/^(none|clear|default|off|reset)$/i.test(a)) {
+    cfg.agent = { ...(cfg.agent || {}) };
+    delete cfg.agent.imageModel;
+    config.save(cfg);
+    ui.success('Image model cleared — using the provider default.');
+    return;
+  }
+  cfg.agent = { ...(cfg.agent || {}), imageModel: a };
+  config.save(cfg);
+  ui.success('Image model set to ' + a + ' (used by generate_image).');
+}
+
 function toolsCmd() {
   const cfg = config.load();
   const rows = [
@@ -939,6 +963,7 @@ function printHelp() {
     ['/url <provider> [u]', 'set a provider base URL'],
     ['/agent [on|off]', 'toggle tool use (the agent)'],
     ['/sandbox [mode]', 'confine tools: off | jail | docker'],
+    ['/image [model]', 'show/set the image-generation model'],
     ['/tools', 'list the agent tools'],
     ['/soul', 'show/locate the SOUL.md personality file'],
     ['/memory', 'show or edit persistent memory'],
@@ -995,6 +1020,7 @@ const slash = {
   url: { run: (args, ctx) => setUrl(args, ctx) },
   agent: { run: (args) => agentCmd(args) },
   sandbox: { run: (args) => sandboxCmd(args) },
+  image: { run: (args) => imageCmd(args) },
   tools: { run: () => toolsCmd() },
   soul: { run: () => soulCmd() },
   memory: { run: (args, ctx) => memoryCmd(args, ctx) },
@@ -1197,7 +1223,7 @@ function repl(ctx) {
 
 const UTILITY = new Set([
   'setup', 'use', 'model', 'models', 'providers', 'key', 'url',
-  'agent', 'sandbox', 'tools', 'soul', 'memory', 'remember', 'forget', 'config',
+  'agent', 'sandbox', 'image', 'tools', 'soul', 'memory', 'remember', 'forget', 'config',
   'sessions', 'session', 'resume', 'delete-session',
   'skills', 'skill',
   'migrate',

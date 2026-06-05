@@ -11,6 +11,7 @@ const sessions = require('../lib/sessions');
 const skills = require('../lib/skills');
 const projectContext = require('../lib/context');
 const tools = require('../lib/tools');
+const sandbox = require('../lib/sandbox');
 
 // The GolDid desktop app supports Windows and Linux only. On macOS, use the CLI.
 if (process.platform === 'darwin') {
@@ -77,7 +78,11 @@ function publicConfig() {
   const cfg = config.load();
   return {
     active: cfg.active,
-    agent: { tools: cfg.agent?.tools !== false },
+    agent: {
+      tools: cfg.agent?.tools !== false,
+      sandbox: sandbox.mode(cfg),
+      imageModel: cfg.agent?.imageModel || '',
+    },
     providers: Object.fromEntries(Object.entries(providers.PROVIDERS).map(([key, def]) => {
       const conf = cfg.providers[key] || {};
       return [key, {
@@ -123,6 +128,27 @@ ipcMain.handle('config:agent', (_, enabled) => {
   return publicConfig();
 });
 
+ipcMain.handle('config:sandbox', (_, mode) => {
+  const cfg = config.load();
+  const m = ['off', 'jail', 'docker'].includes(mode) ? mode : 'off';
+  if (m === 'docker' && !sandbox.dockerAvailable()) {
+    throw new Error('Docker is not available — install/start it first, or use jail.');
+  }
+  cfg.agent = { ...(cfg.agent || {}), sandbox: m };
+  config.save(cfg);
+  return publicConfig();
+});
+
+ipcMain.handle('config:imageModel', (_, model) => {
+  const cfg = config.load();
+  cfg.agent = { ...(cfg.agent || {}) };
+  const m = String(model || '').trim();
+  if (m) cfg.agent.imageModel = m;
+  else delete cfg.agent.imageModel;
+  config.save(cfg);
+  return publicConfig();
+});
+
 ipcMain.handle('models:list', async (_, provider) => {
   const cfg = config.load();
   return providers.fetchModels(provider, cfg.providers[provider] || {});
@@ -156,12 +182,33 @@ async function runDesktopTool(sender, call, sessionId) {
   if (!tool) return `Error: unknown tool "${call.name}"`;
   const id = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
   sender.send('tool:status', { id, name: call.name, state: 'running', args: call.args || {} });
+
+  // Same sandbox + image wiring as the CLI's runTool, so desktop behaves identically.
+  const cfg = config.load();
+  const ctx = { sessionId };
+  ctx.generateImage = (prompt, opts = {}) => {
+    const key = cfg.active.provider;
+    if (!key) throw new Error('no provider configured');
+    const conf = config.providerConf(cfg, key);
+    const model = opts.model || cfg.agent?.imageModel || undefined;
+    return providers.generateImage(key, conf, model, prompt, { size: opts.size });
+  };
+  if (sandbox.mode(cfg) !== 'off') {
+    try {
+      sandbox.enforcePaths(call);
+    } catch (e) {
+      sender.send('tool:status', { id, name: call.name, state: 'error', error: e.message });
+      return 'Error: ' + e.message;
+    }
+    ctx.wrapShell = (command) => sandbox.wrapShell(command, cfg);
+  }
+
   if (tool.danger && !(await requestApproval(sender, call))) {
     sender.send('tool:status', { id, name: call.name, state: 'denied' });
     return 'Denied by user.';
   }
   try {
-    const output = await tool.run(call.args || {}, { sessionId });
+    const output = await tool.run(call.args || {}, ctx);
     sender.send('tool:status', { id, name: call.name, state: 'complete' });
     return output;
   } catch (error) {
