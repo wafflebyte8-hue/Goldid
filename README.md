@@ -3,21 +3,20 @@
 GolDid is a small terminal AI assistant inspired by
 [Hermes Agent](https://github.com/NousResearch/hermes-agent).
 
-I built it because I wanted one simple command for chatting with local and
-cloud models without opening a browser. It supports streaming replies,
-persistent memory, multiple providers, and a few tools for working with files
-and commands on your machine.
+I built it because Hermes agent's system prompt was too large and slowing down my pp "Prompt proccesing" speed.
+So i decided to make this lol.
+.
+This is just a project i made and will probably keep updating it. About 40% of it was vibe coded but who cares? i would love if you guys report issues and do pull requests.
 
-This is a personal project and still a work in progress. Roughly 40% of it was
-vibe-coded with AI assistance. I reviewed and shaped the result, but there may
-still be rough edges. Issues and pull requests are welcome.
+Basically it's one `gd` command for talking to local AND cloud models without opening a browser. it streams replies, remembers stuff, saves your chats, runs skills, has a few tools, and locks your API keys to your machine with the TPM. that's it.
 
 ## Install
 
-GolDid runs anywhere Node.js does. The terminal CLI works on **Windows, Linux,
-and macOS**. The desktop app is available on **Windows and Linux** (not macOS).
+GolDid runs anywhere Node.js does. the CLI works on **Windows, Linux, and
+macOS**. the desktop app works on **Windows and Linux** (sorry mac, no desktop
+for you).
 
-You need:
+you need:
 
 - Node.js 18 or newer
 - Windows: Windows PowerShell or PowerShell 7
@@ -28,19 +27,18 @@ You need:
 irm https://raw.githubusercontent.com/wafflebyte8-hue/Goldid/main/setup.ps1 | iex
 ```
 
-Open a new PowerShell window, then start GolDid:
+open a fresh PowerShell window and run:
 
 ```powershell
 gd
 ```
 
-The installer puts the application in `C:\goldid`, sets the user-level
-`GOLDID_HOME` environment variable, and adds the `gd` command to your
-PowerShell profile. It also installs the GolDid desktop app and creates
-shortcuts on the Windows Desktop and Start Menu.
+the installer drops everything in `C:\goldid`, sets `GOLDID_HOME`, adds the `gd`
+command to your PowerShell profile, installs the desktop app, and makes Desktop +
+Start Menu shortcuts.
 
-If Windows blocks access to `C:\goldid`, run PowerShell as Administrator or
-download the script and pass a different writable path with `-InstallDir`.
+if Windows throws a fit about `C:\goldid`, run PowerShell as admin or pass a
+different writable path with `-InstallDir`.
 
 ### Linux and macOS
 
@@ -48,65 +46,63 @@ download the script and pass a different writable path with `-InstallDir`.
 curl -fsSL https://raw.githubusercontent.com/wafflebyte8-hue/Goldid/main/setup.sh | bash
 ```
 
-Open a new terminal, then start GolDid:
+open a fresh terminal and run:
 
 ```bash
 gd
 ```
 
-The installer puts the application in `~/.local/share/goldid`, sets
-`GOLDID_HOME`, and adds `gd` and `goldid` commands to `~/.local/bin` (ensuring
-it is on your `PATH`). On **Linux** it also installs the desktop app and adds a
-**GolDid** entry to your application menu. On **macOS** only the CLI is
-installed — the desktop app is not supported there.
+this puts GolDid in `~/.local/share/goldid`, sets `GOLDID_HOME`, and adds `gd`
+and `goldid` to `~/.local/bin` (on your `PATH`). on **Linux** it also installs
+the desktop app + an app-menu entry. on **macOS** you only get the CLI.
 
-To install somewhere else, download the script and pass `--install-dir`:
+want it somewhere else? grab the script and pass `--install-dir`:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/wafflebyte8-hue/Goldid/main/setup.sh -o setup.sh
 bash setup.sh --install-dir "$HOME/apps/goldid"
 ```
 
-Running either installer again updates GolDid without deleting your settings or
-memories. The desktop app shares the same encrypted provider configuration,
-memories, skills, and sessions as the CLI.
+running the installer again just updates GolDid — it won't nuke your settings or
+memories. the desktop app shares the same encrypted config, memories, skills, and
+sessions as the CLI.
 
 ### Uninstall
 
-Run the installed uninstaller:
+run the uninstaller:
 
 ```powershell
 & C:\goldid\uninstall.ps1
 ```
 
-It checks the global `gd` command, installer-owned PowerShell profile blocks,
-`GOLDID_HOME`, and the default install path to locate GolDid. Personal settings,
-API keys, memories, sessions, and skills under `~/.goldid` are kept by default.
+it hunts down the `gd` command, the profile blocks, `GOLDID_HOME`, and the
+install path to find GolDid. your stuff under `~/.goldid` (settings, keys,
+memories, sessions, skills) is kept by default.
 
-To remove the application and all personal GolDid data:
+want it ALL gone, data included:
 
 ```powershell
 & C:\goldid\uninstall.ps1 -RemoveData
 ```
 
-Use `-Yes` for a non-interactive uninstall.
+add `-Yes` if you don't want to be asked.
 
 ## First run
 
-The first time you run `gd`, it asks you to:
+first time you run `gd` it asks you to:
 
-1. Choose an AI provider.
-2. Enter an API key or local server URL when needed.
-3. Choose a model.
+1. pick an AI provider.
+2. drop in an API key or local server URL if it needs one.
+3. pick a model.
 
-After that, just type normally:
+after that just type:
 
 ```text
 ❯ explain async/await in one sentence
 ◆ async/await lets you write asynchronous code that reads like synchronous code.
 ```
 
-You can also send a one-off prompt:
+or fire a one-off prompt without sitting in the chat:
 
 ```powershell
 gd "write a haiku about terminals"
@@ -114,32 +110,30 @@ gd "write a haiku about terminals"
 
 ## Desktop app
 
-The desktop app runs on **Windows and Linux**. It is not available on macOS,
-where GolDid runs as the CLI only. The Windows installer creates a **GolDid**
-shortcut on the Desktop and Start Menu; the Linux installer adds a **GolDid**
-entry to your application menu. The desktop app includes:
+there's a desktop app too (Windows + Linux, not macOS). the Windows installer
+makes a **GolDid** shortcut on your Desktop + Start Menu; Linux gets an app-menu
+entry. it does basically everything the CLI does:
 
-- Streaming model responses with Markdown formatting
-- Saved conversation browsing
-- Provider, endpoint, API key, and model settings
-- Live model-list fetching
-- Skill browsing
-- Persistent memory inspection
-- Direct access to the local GolDid data directory
-- Full agent tools, including files, web search, memory, skills, and shell
-- Desktop approval prompts before `shell` or `write_file` runs
+- streaming replies with Markdown
+- browse your saved chats
+- provider / endpoint / API key / model settings
+- live model-list fetching
+- skill browsing
+- peek at persistent memory
+- jump straight to your GolDid data folder
+- full agent tools (files, web search, memory, skills, shell, images)
+- approval popups before `shell`, `write_file`, or `generate_image` run
 
-The desktop app follows the same `/agent` setting as the CLI. If tools were
-disabled with `/agent off`, turn them back on from the CLI with `/agent on`.
-Read-only tools run automatically; commands and file writes always show an
-approval dialog first.
+it follows the same `/agent` setting as the CLI. if you turned tools off with
+`/agent off`, turn them back on with `/agent on`. read-only tools just run;
+anything that touches your machine asks first.
 
-Type `/` in the desktop composer to open its command menu. Use the arrow keys
-to select a command, `Tab` to complete it, and `Enter` to run it. Desktop
-commands include `/new`, `/settings`, `/sessions`, `/skills`, `/memory`,
-`/agent on`, `/agent off`, `/tools`, `/clear`, and `/help`.
+type `/` in the composer to open the command menu — arrow keys to pick, `Tab` to
+complete, `Enter` to run. desktop commands include `/new`, `/settings`,
+`/sessions`, `/skills`, `/memory`, `/agent on`, `/agent off`, `/sandbox`,
+`/image`, `/tools`, `/clear`, and `/help`.
 
-For local development (Windows or Linux):
+dev it locally (Windows or Linux):
 
 ```bash
 npm install
@@ -148,18 +142,19 @@ npm run desktop
 
 ## What it can do
 
-- Stream responses as they are generated, formatted as Markdown
-- Talk to local and cloud models
-- Remember small, durable details between conversations
-- Save, search, and resume previous conversations
-- Load project-specific instructions from `GOLDID.md` or `AGENTS.md`
-- Load portable Hermes, OpenClaw, and AgentSkills-style skills
-- Import usable data from Hermes and OpenClaw together
-- Read and search files
-- Search the web
-- Run approved shell commands
-- Create or overwrite files after asking for approval
-- Keep its personality in an editable `SOUL.md`
+- stream replies as they're generated, formatted as Markdown
+- talk to local AND cloud models
+- remember small durable stuff between chats
+- save, search, and resume old conversations
+- load per-project instructions from `GOLDID.md` or `AGENTS.md`
+- load portable Hermes / OpenClaw / AgentSkills skills
+- import your stuff from Hermes and OpenClaw
+- read and search files
+- search the web
+- run shell commands (after you approve them)
+- write files (after you approve them)
+- generate images
+- keep its personality in an editable `SOUL.md`
 
 ## Providers
 
@@ -175,48 +170,91 @@ npm run desktop
 | vLLM          | Local | `http://localhost:8000` by default  |
 | LM Studio     | Local | `http://localhost:1234` by default  |
 
-Local model lists are fetched directly from the running server, so GolDid
-shows the models you actually have available.
+local model lists come straight from the running server, so GolDid shows the
+models you actually have, not some hardcoded list.
 
-<sub>Your API keys are encrypted as soon as you enter them.</sub>
+<sub>your API keys get encrypted the moment you type them.</sub>
+
+## The prompt thing (why this exists)
+
+quick nerd note since it's the whole reason i made this: GolDid sizes the system
+prompt to the model. cloud models get the long, detailed prompt because they can
+handle it. small **local** models get a short, plain one — because a giant prompt
+tanks your prompt-processing speed and confuses small models. skills are
+catalog-only in the base prompt (just names + descriptions) and the full
+instructions load on demand. keeps the prompt small so your tok/s doesn't die.
 
 ## Tools and approval
 
-GolDid can give the selected model access to a small set of tools:
+GolDid can hand the model a small set of tools:
 
-| Tool          | Needs approval | Purpose                          |
-| ------------- | -------------: | -------------------------------- |
-| `time`        |             No | Get the current date and time    |
-| `cwd`         |             No | Show the working directory       |
-| `memory`      |             No | Read or update persistent memory |
-| `list_dir`    |             No | List directory contents          |
-| `read_file`   |             No | Read a text file                 |
-| `file_info`   |             No | Inspect file metadata            |
-| `find_files`  |             No | Find files recursively           |
-| `search_text` |             No | Search inside text files         |
-| `web_search`  |             No | Search the web                   |
-| `write_file`  |            Yes | Create or overwrite a file       |
-| `shell`       |            Yes | Run a shell command              |
+| Tool             | Needs approval | Purpose                          |
+| ---------------- | -------------: | -------------------------------- |
+| `time`           |             No | Get the current date and time    |
+| `cwd`            |             No | Show the working directory       |
+| `memory`         |             No | Read or update persistent memory |
+| `list_dir`       |             No | List directory contents          |
+| `read_file`      |             No | Read a text file                 |
+| `file_info`      |             No | Inspect file metadata            |
+| `find_files`     |             No | Find files recursively           |
+| `search_text`    |             No | Search inside text files         |
+| `web_search`     |             No | Search the web                   |
+| `skills_list`    |             No | List installed skills            |
+| `skill_view`     |             No | Load a skill's full instructions |
+| `generate_image` |            Yes | Generate an image and save it    |
+| `write_file`     |            Yes | Create or overwrite a file       |
+| `shell`          |            Yes | Run a shell command              |
 
-`write_file` and `shell` do not run silently. GolDid shows the request and asks
-you to approve it first. You can turn all agent tools off with:
+`generate_image`, `write_file`, and `shell` never run silently — GolDid shows you
+exactly what it wants to do and waits for a yes. don't want any of it? kill all
+tools:
 
 ```text
 /agent off
 ```
 
-The quality of tool use depends heavily on the model. Larger cloud models tend
-to follow tool instructions reliably. Very small local models may ignore them
-or produce malformed calls.
+heads up: tool use quality depends HARD on the model. big cloud models follow
+tool instructions great. tiny local models might ignore them or spit out
+malformed calls. that's a model problem, not a GolDid problem.
+
+### Sandbox
+
+if you don't trust what the model might do with `shell`/files, sandbox it:
+
+```text
+/sandbox jail     # lock file + shell tools to the folder you launched gd in
+/sandbox docker   # run shell inside a throwaway Docker container (real isolation)
+/sandbox off      # back to normal
+```
+
+`jail` is pure Node, no deps — it's a guardrail, not a prison (a determined shell
+command can still wriggle out). `docker` is the real isolation but needs Docker
+installed.
+
+## Image generation
+
+GolDid can make images too. it uses its OWN provider + model (separate from your
+chat model) so you can chat on local Ollama and still generate on OpenAI or
+whatever. set it up with a wizard:
+
+```text
+/image
+```
+
+pick a provider (it shows which ones already have a key so you can reuse it),
+reuse/enter the key, pick the model. then just ask the model to make an image and
+approve it. works on OpenAI, Gemini, xAI, and OpenRouter. `/image clear` resets
+it.
 
 ## Memory and personality
 
-GolDid keeps personal data outside the repository:
+GolDid keeps your personal stuff out of the repo, in `~/.goldid`:
 
 ```text
 ~/.goldid/
-  config.json
-  key.bin
+  config.json          provider config + encrypted API keys
+  key.tpm              TPM-wrapped master key (when sealed)
+  key.bin              legacy plaintext master key (fallback)
   SOUL.md
   memories/
     MEMORY.md
@@ -224,21 +262,23 @@ GolDid keeps personal data outside the repository:
     PERSONALITY.md
   sessions/
     <session-id>.json
+  skills/
+    goldid/            your own skills
+    _Template/         starter template (skipped by the loader)
 ```
 
-- `SOUL.md` controls GolDid's general voice and identity.
-- `USER.md` stores durable preferences or details about you.
-- `MEMORY.md` stores useful project and environment notes.
-- `PERSONALITY.md` stores behavior and style adjustments.
+- `SOUL.md` is GolDid's voice / identity.
+- `USER.md` is durable stuff about you.
+- `MEMORY.md` is useful project / environment notes.
+- `PERSONALITY.md` is behavior / style tweaks.
 
-You can inspect or edit memory with `/memory`, `/remember`, and `/forget`.
-These files are local and are not part of this Git repository.
+poke at memory with `/memory`, `/remember`, and `/forget`. these files are local
+and not in the git repo.
 
 ## Saved sessions
 
-Conversations are automatically saved under `~/.goldid/sessions/` after each
-completed turn. This makes it possible to leave a conversation and continue it
-later:
+your chats auto-save under `~/.goldid/sessions/` after each turn, so you can bail
+and come back later:
 
 ```text
 /sessions
@@ -246,24 +286,24 @@ later:
 /resume <session-id>
 ```
 
-Use `/session my-project` to give the current conversation a memorable ID.
-`/reset` starts a new conversation with a new session ID.
+`/session my-project` gives the current chat a memorable id. `/reset` starts
+fresh with a new id.
 
-Session files contain your chat messages and tool results. Keep the
-`~/.goldid/sessions` directory private and review it before sharing diagnostics.
+session files have your messages + tool results in them, so keep
+`~/.goldid/sessions` private and skim it before sharing logs.
 
 ## Project instructions
 
-GolDid looks for a project context file before each model turn:
+before each turn GolDid looks for a project context file:
 
 1. `GOLDID.md`
 2. `AGENTS.md`
 
-It starts in the current working directory and walks upward until it finds one.
-Use this file for repository conventions, useful commands, architecture notes,
-or instructions that should apply whenever GolDid works in that project.
+it starts in the current folder and walks up until it finds one. use it for repo
+conventions, handy commands, architecture notes — whatever should apply whenever
+GolDid works in that project.
 
-Example `GOLDID.md`:
+example `GOLDID.md`:
 
 ```markdown
 # Project instructions
@@ -275,9 +315,9 @@ Example `GOLDID.md`:
 
 ## Skills
 
-GolDid supports portable skill folders used by Hermes Agent, OpenClaw, and the
-AgentSkills standard. A skill is a directory containing `SKILL.md` (lowercase
-`skill.md` is also accepted):
+GolDid runs portable skill folders from Hermes Agent, OpenClaw, and the
+AgentSkills standard. a skill is just a folder with a `SKILL.md` (lowercase
+`skill.md` works too):
 
 ```text
 my-skill/
@@ -289,7 +329,7 @@ my-skill/
   assets/        optional
 ```
 
-Example:
+example:
 
 ```markdown
 ---
@@ -306,8 +346,7 @@ platforms: [windows, linux, macos]
 3. Review the package version.
 ```
 
-GolDid discovers compatible skills from these locations, highest precedence
-first:
+GolDid finds skills in these spots, highest priority first:
 
 1. `<project>/skills`
 2. `<project>/.agents/skills`
@@ -318,36 +357,41 @@ first:
 7. `%HERMES_HOME%/hermes-agent/skills` for bundled Hermes skills
 8. `~/.openclaw/skills`
 
-Grouped layouts such as `skills/software-development/release-check/SKILL.md`
-are supported. Skills restricted to another operating system through the
-`platforms` field are hidden.
+grouped layouts like `skills/software-development/release-check/SKILL.md` work
+fine. folders starting with `_` or `.` get skipped (that's how the `_Template`
+stays a reference instead of showing up as a real skill). skills locked to
+another OS via `platforms` are hidden.
 
-GolDid puts only skill names and descriptions in the initial prompt. The model
-must use `skill_view` to load full instructions when a task matches. This keeps
-the prompt smaller. `${HERMES_SKILL_DIR}`, `${GOLDID_SKILL_DIR}`, and
-`${HERMES_SESSION_ID}` placeholders are supported.
+only skill names + descriptions go in the prompt up front. the model has to use
+`skill_view` to load the full thing when a task matches — keeps the prompt small.
+`${HERMES_SKILL_DIR}`, `${GOLDID_SKILL_DIR}`, and `${HERMES_SESSION_ID}`
+placeholders are supported.
 
-Use:
+use:
 
 ```text
 /skills
 /skill release-check
 ```
 
-Third-party skills are instructions, not trusted code. Read them before use.
-GolDid does not execute Hermes inline-shell expressions automatically. Any
-commands requested by a skill still go through the normal `shell` approval.
+third-party skills are instructions, NOT trusted code. read them before you use
+them. GolDid won't auto-run Hermes inline-shell expressions — any command a skill
+wants still goes through normal `shell` approval.
+
+when you first run GolDid it scaffolds `~/.goldid/skills/goldid/` (where your own
+skills go) and `~/.goldid/skills/_Template/your-skill-name/` (a starter you can
+copy). just copy the template, rename the folder to your slug, and fill it in.
 
 ### GolDid skill metadata
 
-Every GolDid skill uses this two-file base:
+every GolDid skill is two files:
 
 ```text
 SKILL.md
 Version.js
 ```
 
-For a native GolDid skill, `Version.js` contains normalized metadata:
+for a native GolDid skill, `Version.js` has normalized metadata:
 
 ```javascript
 "use strict";
@@ -361,16 +405,21 @@ module.exports = {
 };
 ```
 
-The native fields are:
+**important:** GolDid parses `Version.js` as JSON, so the keys MUST be
+double-quoted. unquoted keys are valid JavaScript but invalid JSON, so they get
+silently ignored and GolDid falls back to the `SKILL.md` frontmatter. don't get
+caught by that one.
 
-- `Author`: original frontmatter author, or the import source when absent
+the fields:
+
+- `Author`: original frontmatter author, or the import source if missing
 - `Name`: normalized skill name
 - `Description`: short catalog description
-- `Usage`: imported from `usage`, `## Usage`, or `## When to Use`
-- `Model_tested`: models declared by the skill author; empty when unknown
+- `Usage`: from `usage`, `## Usage`, or `## When to Use`
+- `Model_tested`: models the author declared; empty if unknown
 
-For migrated Hermes and OpenClaw skills, GolDid does not claim metadata that
-was not authored specifically for GolDid. Their generated file is:
+for migrated Hermes/OpenClaw skills, GolDid doesn't make up metadata it doesn't
+have:
 
 ```javascript
 "use strict";
@@ -384,105 +433,130 @@ module.exports = {
 };
 ```
 
-The original `SKILL.md` remains unchanged and is still used to discover and run
-the imported skill. GolDid parses `Version.js` as JSON data inside a CommonJS
-export and never executes it.
+the original `SKILL.md` is untouched and still used to find + run the imported
+skill. GolDid parses `Version.js` as JSON data and never executes it.
 
 ## Migrating from Hermes and OpenClaw
 
-GolDid can inspect both installations at the same time and import the parts it
-understands:
+GolDid can look at both installs at once and import what it understands:
 
 ```powershell
 gd migrate --dry-run
 gd migrate --secrets
 ```
 
-The default source is `both`. You can choose one:
+default source is `both`. pick one if you want:
 
 ```powershell
 gd migrate hermes --dry-run
 gd migrate openclaw --dry-run
 ```
 
-Supported imports:
+what it imports:
 
-- Skills and their supporting files
+- skills + their support files
 - `SOUL.md`
 - `MEMORY.md`, `USER.md`, and `PERSONALITY.md`
-- OpenClaw workspace instructions for manual review
-- Supported provider names, model selection, and base URLs
+- OpenClaw workspace instructions (for you to review)
+- supported provider names, model selection, base URLs
 - API keys for providers GolDid supports
 
-API keys are excluded unless you explicitly add `--secrets`. Imported keys are
-written through GolDid's encrypted configuration store and are not printed in
-the preview.
+API keys are skipped unless you pass `--secrets`. imported keys go through the
+encrypted config store and never get printed in the preview.
 
-Migration is conflict-safe by default:
+it's conflict-safe by default:
 
-- Memory entries are merged and deduplicated.
-- Existing files and skills are skipped.
-- Imported skills go under `~/.goldid/skills/hermes-imports/` and
-  `~/.goldid/skills/openclaw-imports/`.
-- Add `--overwrite` only when you intentionally want imported files and
-  provider settings to replace existing values.
+- memory entries get merged + deduped
+- existing files / skills get skipped
+- imported skills land under `~/.goldid/skills/hermes-imports/` and
+  `~/.goldid/skills/openclaw-imports/`
+- add `--overwrite` only if you actually want imported stuff to replace what you
+  have
 
-Use `--yes` to skip the confirmation prompt:
+skip the confirm with `--yes`:
 
 ```powershell
 gd migrate both --secrets --yes
 ```
 
-Custom source locations are also supported:
+custom source locations work too:
 
 ```powershell
 gd migrate both --hermes-dir D:\HermesData --openclaw-dir D:\OpenClawData --dry-run
 ```
 
 OAuth sessions, messaging accounts, cron jobs, plugins, browser state, and
-providers GolDid does not support are not imported. The migration report lists
-unsupported providers so they can be configured manually.
+providers GolDid doesn't support are NOT imported. the report lists unsupported
+providers so you can set them up by hand.
 
 ## API key security
 
-Provider API keys are encrypted in `~/.goldid/config.json` using AES-256-GCM.
-The encryption key is stored separately at `~/.goldid/key.bin`.
+this is the part i'm actually proud of. your provider API keys are encrypted in
+`~/.goldid/config.json` with AES-256-GCM. the 32-byte key that encrypts them (the
+_master key_) is itself protected, and how depends on your machine:
 
-This mainly protects against accidentally exposing a readable key when sharing
-`config.json`. It is not a replacement for an operating-system credential
-vault: anyone who gets both `config.json` and `key.bin` can decrypt the keys.
-Do not upload either file.
+- **TPM 2.0 sealed (best).** on Windows the master key gets wrapped by a key in
+  the Microsoft Platform Crypto Provider; on Linux it's sealed by the TPM via
+  `tpm2-tools` (auto-installed when you run `/keystore migrate`). the wrapping key
+  lives INSIDE the TPM and can't be exported, so the master key is bound to that
+  machine. someone copies `config.json` + `key.tpm` to their machine? useless to
+  them.
+- **Machine-bound fallback (no TPM).** if your CPU has no usable TPM, the master
+  key gets double-encrypted with keys derived from stable machine identifiers and
+  hidden outside `~/.goldid`. still won't decrypt on another machine.
+- **Plaintext fallback.** a legacy `~/.goldid/key.bin` only when nothing better
+  is around.
+
+check or change it:
+
+```text
+/keystore            # status
+/keystore migrate    # seal it the best way your machine can
+/keystore revert     # back to a plaintext key
+```
+
+tested working on Windows and Linux. macOS just uses the machine-bound/plaintext
+fallback (no TPM path yet).
+
+honest caveats so i'm not lying to you: the TPM protects against someone
+**copying your files**, NOT against code already running as **you** (any process
+in your session can use the same TPM key — every local keystore has this limit).
+and if you wipe / reset the TPM the sealed key is gone and you just re-enter your
+keys. never upload `config.json`, `key.bin`, or `key.tpm`.
 
 ## Commands
 
-| Command                     | What it does                        |
-| --------------------------- | ----------------------------------- |
-| `/setup [provider]`         | Configure a provider and model      |
-| `/use <provider>`           | Switch provider                     |
-| `/model [name]`             | Show or change the active model     |
-| `/models [provider]`        | Fetch available models              |
-| `/providers`                | Show provider status                |
-| `/key <provider> [key]`     | Set an API key                      |
-| `/url <provider> [url]`     | Set a provider URL                  |
-| `/agent [on\|off]`          | Enable or disable tools             |
-| `/tools`                    | List available tools                |
-| `/soul`                     | Show the personality file           |
-| `/memory`                   | Inspect or edit memory              |
-| `/sessions [query]`         | List or search saved conversations  |
-| `/session [name]`           | Show or name the current session    |
-| `/resume <id>`              | Resume a saved conversation         |
-| `/delete-session <id>`      | Delete a saved conversation         |
-| `/skills`                   | List compatible installed skills    |
-| `/skill <name>`             | Inspect a skill's full instructions |
-| `/migrate [source]`         | Import Hermes/OpenClaw data         |
-| `/remember [target] <text>` | Add a memory                        |
-| `/forget [target] <text>`   | Remove a memory                     |
-| `/config`                   | Show current configuration          |
-| `/reset`                    | Start a fresh conversation          |
-| `/clear`                    | Clear the terminal                  |
-| `/version`                  | Show the version                    |
-| `/help`                     | Show command help                   |
-| `/exit`                     | Quit                                |
+| Command                        | What it does                               |
+| ------------------------------ | ------------------------------------------ |
+| `/setup [provider]`            | Configure a provider and model             |
+| `/use <provider>`              | Switch provider                            |
+| `/model [name]`                | Show or change the active model            |
+| `/models [provider]`           | Fetch available models                     |
+| `/providers`                   | Show provider status                       |
+| `/key <provider> [key]`        | Set an API key                             |
+| `/url <provider> [url]`        | Set a provider URL                         |
+| `/agent [on\|off]`             | Enable or disable tools                    |
+| `/sandbox [off\|jail\|docker]` | Confine tools to a directory or container  |
+| `/image [model]`               | Set up image generation (provider + model) |
+| `/keystore [migrate\|revert]`  | Show/change API-key protection (TPM)       |
+| `/tools`                       | List available tools                       |
+| `/soul`                        | Show the personality file                  |
+| `/memory`                      | Inspect or edit memory                     |
+| `/sessions [query]`            | List or search saved conversations         |
+| `/session [name]`              | Show or name the current session           |
+| `/resume <id>`                 | Resume a saved conversation                |
+| `/delete-session <id>`         | Delete a saved conversation                |
+| `/skills`                      | List compatible installed skills           |
+| `/skill <name>`                | Inspect a skill's full instructions        |
+| `/migrate [source]`            | Import Hermes/OpenClaw data                |
+| `/remember [target] <text>`    | Add a memory                               |
+| `/forget [target] <text>`      | Remove a memory                            |
+| `/config`                      | Show current configuration                 |
+| `/reset`                       | Start a fresh conversation                 |
+| `/clear`                       | Clear the terminal                         |
+| `/version`                     | Show the version                           |
+| `/help`                        | Show command help                          |
+| `/exit`                        | Quit                                       |
 
 ## Project layout
 
@@ -498,6 +572,8 @@ GolDid/
     assets/        GolDid app logo
   lib/
     config.js      Encrypted configuration storage
+    keystore.js    Master-key protection (TPM 2.0 / machine-bound / plaintext)
+    sandbox.js     Tool sandboxing (jail / docker)
     memory.js      Persistent memory
     prompt.js      System prompt construction
     providers.js   Provider APIs and streaming
@@ -511,14 +587,16 @@ GolDid/
   package.json
 ```
 
-The CLI core relies on Node.js built-ins and the native `fetch` API. GolDid
-additionally uses Electron for the desktop app and `marked` + `dompurify` to
-render Markdown responses (Markdown in the terminal is rendered by the built-in
-`lib/markdown.js`).
+the CLI core only needs Node.js built-ins + native `fetch`. the desktop app adds
+Electron and uses `marked` + `dompurify` to render Markdown (the terminal renders
+its own Markdown via `lib/markdown.js`).
+
+want the full deep-dive on every module, the prompt system, the agent loop, and
+the security model? read [documentation.md](documentation.md).
 
 ## Updating
 
-Run the installer again.
+just run the installer again.
 
 Windows:
 
@@ -532,20 +610,20 @@ Linux and macOS:
 curl -fsSL https://raw.githubusercontent.com/wafflebyte8-hue/Goldid/main/setup.sh | bash
 ```
 
-Your files under `~/.goldid` are left alone.
+your stuff under `~/.goldid` stays put.
 
 ## Contributing
 
-This project is experimental, so bug reports are useful. When reporting a
-problem, include:
+it's experimental so bug reports genuinely help. when something breaks, include:
 
-- Your Node.js version
-- Your PowerShell version
-- The provider and model you used
-- The command or action that failed
-- The error message, with API keys removed
+- your Node.js version
+- your PowerShell version
+- the provider + model you used
+- the command or action that failed
+- the error message (scrub your API keys out first)
 
-Please never include `config.json`, `key.bin`, or real API keys in an issue.
+please never paste real API keys, `config.json`, or `key.bin`/`key.tpm` into an
+issue.
 
 ## License
 
