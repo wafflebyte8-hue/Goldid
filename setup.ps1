@@ -45,6 +45,21 @@ $endMarker
   Set-Content -LiteralPath $ProfilePath -Value $next -Encoding UTF8
 }
 
+function Set-GolDidShortcut([string]$ShortcutPath, [string]$LauncherPath, [string]$WorkingDirectory, [string]$IconPath) {
+  $parent = Split-Path -Parent $ShortcutPath
+  New-Item -ItemType Directory -Path $parent -Force | Out-Null
+  $shell = New-Object -ComObject WScript.Shell
+  $shortcut = $shell.CreateShortcut($ShortcutPath)
+  $shortcut.TargetPath = 'powershell.exe'
+  $shortcut.Arguments = '-NoProfile -ExecutionPolicy Bypass -File "' + $LauncherPath + '"'
+  $shortcut.WorkingDirectory = $WorkingDirectory
+  $shortcut.Description = 'GolDid desktop AI assistant'
+  if (Test-Path -LiteralPath $IconPath) {
+    $shortcut.IconLocation = $IconPath
+  }
+  $shortcut.Save()
+}
+
 Write-Step 'Checking Node.js...'
 $node = Get-Command node -ErrorAction SilentlyContinue
 if (-not $node) {
@@ -78,7 +93,7 @@ try {
   } catch {
     throw "Could not create $InstallDir. Open PowerShell as Administrator or use -InstallDir with a writable path."
   }
-  foreach ($name in @('goldid.js', 'package.json', 'README.md', 'uninstall.ps1', 'lib')) {
+  foreach ($name in @('goldid.js', 'package.json', 'README.md', 'uninstall.ps1', 'desktop-launch.ps1', 'desktop', 'lib')) {
     $from = Join-Path $source.FullName $name
     if (-not (Test-Path -LiteralPath $from)) {
       throw "Required repository item is missing: $name"
@@ -88,6 +103,16 @@ try {
       Remove-Item -LiteralPath $to -Recurse -Force
     }
     Copy-Item -LiteralPath $from -Destination $to -Recurse -Force
+  }
+
+  Write-Step 'Installing desktop runtime...'
+  $npm = Get-Command npm -ErrorAction SilentlyContinue
+  if (-not $npm) {
+    throw 'npm was not found even though Node.js is installed. Repair your Node.js installation and rerun setup.'
+  }
+  & $npm.Source install --omit=dev --no-audit --no-fund --prefix $InstallDir
+  if ($LASTEXITCODE -ne 0) {
+    throw 'Could not install the Electron desktop runtime.'
   }
 
   $entryPoint = Join-Path $InstallDir 'goldid.js'
@@ -103,6 +128,19 @@ try {
   }
   [Environment]::SetEnvironmentVariable('GOLDID_HOME', $InstallDir, 'User')
   $env:GOLDID_HOME = $InstallDir
+
+  $electronPath = Join-Path $InstallDir 'node_modules\electron\dist\electron.exe'
+  $desktopLauncher = Join-Path $InstallDir 'desktop-launch.ps1'
+  $desktopIcon = Join-Path $InstallDir 'desktop\assets\goldid-logo.ico'
+  if (Test-Path -LiteralPath $electronPath) {
+    Write-Step 'Creating desktop shortcuts...'
+    $desktopDir = [Environment]::GetFolderPath('Desktop')
+    $startMenuDir = Join-Path ([Environment]::GetFolderPath('Programs')) 'GolDid'
+    Set-GolDidShortcut -ShortcutPath (Join-Path $desktopDir 'GolDid.lnk') `
+      -LauncherPath $desktopLauncher -WorkingDirectory $InstallDir -IconPath $desktopIcon
+    Set-GolDidShortcut -ShortcutPath (Join-Path $startMenuDir 'GolDid.lnk') `
+      -LauncherPath $desktopLauncher -WorkingDirectory $InstallDir -IconPath $desktopIcon
+  }
 
   Write-Host ''
   Write-Host 'GolDid installed successfully.' -ForegroundColor Green

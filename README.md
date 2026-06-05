@@ -36,6 +36,10 @@ The installer puts the application in `C:\goldid`, sets the user-level
 PowerShell profile. Running it again updates GolDid without deleting your
 settings or memories.
 
+It also installs the GolDid desktop app and creates shortcuts on the Windows
+Desktop and Start Menu. The desktop app shares the same encrypted provider
+configuration, memories, skills, and sessions as the CLI.
+
 If Windows blocks access to `C:\goldid`, run PowerShell as Administrator or
 download the script and pass a different writable path with `-InstallDir`.
 
@@ -78,6 +82,32 @@ You can also send a one-off prompt:
 
 ```powershell
 gd "write a haiku about terminals"
+```
+
+## Desktop app
+
+The Windows installer creates a **GolDid** shortcut. The desktop app includes:
+
+- Streaming model responses
+- Saved conversation browsing
+- Provider, endpoint, API key, and model settings
+- Live model-list fetching
+- Skill browsing
+- Persistent memory inspection
+- Direct access to the local GolDid data directory
+- Full agent tools, including files, web search, memory, skills, and shell
+- Desktop approval prompts before `shell` or `write_file` runs
+
+The desktop app follows the same `/agent` setting as the CLI. If tools were
+disabled with `/agent off`, turn them back on from the CLI with `/agent on`.
+Read-only tools run automatically; commands and file writes always show an
+approval dialog first.
+
+For local development:
+
+```powershell
+npm install
+npm run desktop
 ```
 
 ## What it can do
@@ -424,7 +454,10 @@ Do not upload either file.
 GolDid/
   setup.ps1        Windows installer and updater
   uninstall.ps1    Windows uninstaller
+  desktop-launch.ps1  Desktop runtime launcher
   goldid.js        CLI, chat loop, commands, and setup wizard
+  desktop/         Electron desktop application
+    assets/        GolDid app logo
   lib/
     config.js      Encrypted configuration storage
     memory.js      Persistent memory

@@ -12,6 +12,10 @@ $profiles = @(
   (Join-Path $documents 'WindowsPowerShell\Microsoft.PowerShell_profile.ps1'),
   (Join-Path $documents 'PowerShell\Microsoft.PowerShell_profile.ps1')
 ) | Select-Object -Unique
+$shortcuts = @(
+  (Join-Path ([Environment]::GetFolderPath('Desktop')) 'GolDid.lnk'),
+  (Join-Path (Join-Path ([Environment]::GetFolderPath('Programs')) 'GolDid') 'GolDid.lnk')
+)
 
 function Write-Step([string]$Message) {
   Write-Host "[GolDid] $Message" -ForegroundColor Yellow
@@ -105,6 +109,17 @@ Write-Step 'Removing PowerShell command registration...'
 $profileCount = 0
 foreach ($profilePath in $profiles) {
   if (Remove-ProfileRegistration $profilePath) { $profileCount++ }
+}
+
+foreach ($shortcut in $shortcuts) {
+  if (Test-Path -LiteralPath $shortcut) {
+    Remove-Item -LiteralPath $shortcut -Force
+  }
+}
+$startMenuFolder = Split-Path -Parent $shortcuts[1]
+if (Test-Path -LiteralPath $startMenuFolder) {
+  $remaining = Get-ChildItem -LiteralPath $startMenuFolder -Force
+  if (-not $remaining) { Remove-Item -LiteralPath $startMenuFolder -Force }
 }
 
 if ($installDir) {

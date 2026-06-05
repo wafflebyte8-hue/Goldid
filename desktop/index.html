@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GolDid</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <header class="brand">
+        <div class="brand-mark" aria-hidden="true"><img src="assets/goldid-logo.png" alt=""></div>
+        <div><strong>GolDid</strong><small>Desktop</small></div>
+        <button id="settingsButton" class="icon-button" title="Settings" aria-label="Settings"><img src="icons/settings.svg" alt=""></button>
+      </header>
+      <button id="newChatButton" class="primary-button"><img src="icons/plus.svg" alt="">New conversation</button>
+      <nav class="nav-tabs" aria-label="Sidebar views">
+        <button class="tab active" data-tab="sessions">Sessions</button>
+        <button class="tab" data-tab="skills">Skills</button>
+        <button class="tab" data-tab="memory">Memory</button>
+      </nav>
+      <div id="sidebarContent" class="sidebar-content"></div>
+      <footer class="sidebar-footer">
+        <span id="connectionDot" class="status-dot"></span>
+        <div><strong id="activeProvider">Not configured</strong><small id="activeModel">Open settings</small></div>
+      </footer>
+    </aside>
+
+    <main class="workspace">
+      <header class="topbar">
+        <div>
+          <h1 id="conversationTitle">New conversation</h1>
+          <p id="workingDirectory"></p>
+        </div>
+        <button id="openDataButton" class="secondary-button"><img src="icons/folder.svg" alt="">Open data folder</button>
+      </header>
+      <section id="messages" class="messages" aria-live="polite">
+        <div class="empty-state">
+          <div class="empty-mark"><img src="assets/goldid-logo.png" alt=""></div>
+          <h2>What are we working on?</h2>
+          <p>Ask a question, explore a project, or continue a saved conversation.</p>
+        </div>
+      </section>
+      <form id="composer" class="composer">
+        <textarea id="messageInput" rows="1" placeholder="Message GolDid" aria-label="Message GolDid"></textarea>
+        <button id="sendButton" class="send-button" type="submit" title="Send" aria-label="Send"><img src="icons/send.svg" alt=""></button>
+      </form>
+    </main>
+  </div>
+
+  <dialog id="settingsDialog">
+    <form id="settingsForm" method="dialog">
+      <header><div><h2>Model settings</h2><p>Keys are encrypted in your existing GolDid configuration.</p></div><button class="icon-button" value="cancel" aria-label="Close"><img src="icons/close.svg" alt=""></button></header>
+      <label>Provider<select id="providerSelect"></select></label>
+      <label>Base URL<input id="baseUrlInput" type="url"></label>
+      <label>API key<input id="apiKeyInput" type="password" placeholder="Leave blank to keep the saved key"></label>
+      <div class="model-row">
+        <label>Model<input id="modelInput" type="text" required></label>
+        <button id="fetchModelsButton" class="secondary-button" type="button">Fetch models</button>
+      </div>
+      <div id="modelSuggestions" class="model-suggestions"></div>
+      <footer><button class="secondary-button" value="cancel">Cancel</button><button class="primary-button" value="default">Save settings</button></footer>
+    </form>
+  </dialog>
+
+  <dialog id="detailDialog">
+    <article><header><h2 id="detailTitle"></h2><button id="detailClose" class="icon-button" aria-label="Close"><img src="icons/close.svg" alt=""></button></header><pre id="detailContent"></pre></article>
+  </dialog>
+  <dialog id="approvalDialog">
+    <article>
+      <header><div><h2>Approve agent action</h2><p id="approvalDescription"></p></div></header>
+      <pre id="approvalArgs"></pre>
+      <footer><button id="denyToolButton" class="secondary-button">Deny</button><button id="approveToolButton" class="primary-button">Approve</button></footer>
+    </article>
+  </dialog>
+  <dialog id="deleteDialog">
+    <article>
+      <header><div><h2>Delete conversation?</h2><p id="deleteDescription"></p></div></header>
+      <footer><button id="cancelDeleteButton" class="secondary-button">Cancel</button><button id="confirmDeleteButton" class="danger-button">Delete</button></footer>
+    </article>
+  </dialog>
+  <script src="renderer.js"></script>
+</body>
+</html>

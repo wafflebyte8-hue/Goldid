@@ -24,7 +24,7 @@ const projectContext = require('./lib/context');
 const skills = require('./lib/skills');
 const migrate = require('./lib/migrate');
 
-const VERSION = '0.10.0';
+const VERSION = '0.12.0';
 const MAX_AGENT_STEPS = 6;
 const TOOL_TAG = '<tool_call>';
 
