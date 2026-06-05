@@ -19,6 +19,7 @@ const ui = require('./lib/ui');
 const markdown = require('./lib/markdown');
 const prompt = require('./lib/prompt');
 const tools = require('./lib/tools');
+const sandbox = require('./lib/sandbox');
 const memory = require('./lib/memory');
 const sessions = require('./lib/sessions');
 const projectContext = require('./lib/context');
@@ -167,6 +168,7 @@ function welcomeRows(cfg, width) {
     ui.kv('provider', statusValue(providerLabel)),
     ui.kv('model', statusValue(ui.clip(modelLabel, wide ? 52 : 32))),
     ui.kv('agent', agent),
+    ui.kv('sandbox', sandbox.mode(cfg) === 'off' ? ui.dim('off') : ui.amber(sandbox.mode(cfg))),
     ui.kv('memory', ui.dim(memorySummary())),
     ui.kv('cwd', ui.dim(ui.clip(process.cwd(), wide ? 58 : 34))),
     ui.kv('config', ui.dim(ui.clip(config.CONFIG_PATH, wide ? 58 : 34))),
@@ -353,6 +355,28 @@ async function runTool(call, ctx) {
   console.log(ui.amber(`\n${ui.symbols.gear} ${call.name}`) + ' ' + ui.dim(JSON.stringify(call.args || {})));
   if (!tool) {
     return `Error: unknown tool "${call.name}". Available: ${Object.keys(tools.TOOLS).join(', ')}`;
+  }
+  const cfg = config.load();
+  // Image generation runs against the active provider; expose a helper the tool
+  // calls so tools.js stays provider-agnostic.
+  ctx.generateImage = (prompt, opts = {}) => {
+    const key = cfg.active.provider;
+    if (!key) throw new Error('no provider configured — run /setup first');
+    const conf = config.providerConf(cfg, key);
+    return providers.generateImage(key, conf, opts.model, prompt, { size: opts.size });
+  };
+  // Apply the active sandbox: confine path args to the jail root, and give the
+  // shell tool a wrapper that pins its cwd (jail) or containerizes it (docker).
+  const sbMode = sandbox.mode(cfg);
+  if (sbMode !== 'off') {
+    try {
+      sandbox.enforcePaths(call);
+    } catch (e) {
+      ui.warning(e.message);
+      return 'Error: ' + e.message;
+    }
+    ctx.wrapShell = (command) => sandbox.wrapShell(command, cfg);
+    console.log(ui.dim(`  ${ui.symbols.hook} sandbox: ${sbMode}`));
   }
   if (tool.danger) {
     if (!process.stdin.isTTY) {
@@ -855,6 +879,40 @@ function agentCmd(args) {
   if (next) ui.info('the model can now use: ' + Object.keys(tools.TOOLS).join(', '));
 }
 
+function sandboxCmd(args) {
+  const cfg = config.load();
+  const cur = sandbox.mode(cfg);
+  const a = (args[0] || '').toLowerCase();
+  if (!a) {
+    ui.kv('sandbox', cur === 'off' ? ui.dim('off') : ui.amber(cur));
+    if (cur === 'jail') ui.info('paths + shell confined to: ' + sandbox.JAIL_ROOT);
+    if (cur === 'docker') {
+      ui.info('shell runs in a container; image: ' + sandbox.image(cfg));
+      if (!sandbox.dockerAvailable()) ui.warning('Docker is not available right now.');
+    }
+    ui.info('use: /sandbox off | jail | docker  (jail locks to the current directory)');
+    return;
+  }
+  if (!['off', 'jail', 'docker'].includes(a)) {
+    ui.warning(`Unknown sandbox mode: ${a}`);
+    ui.info('choose one of: off, jail, docker');
+    return;
+  }
+  if (a === 'docker' && !sandbox.dockerAvailable()) {
+    ui.warning('Docker is not available — install/start it first, or use /sandbox jail.');
+    return;
+  }
+  cfg.agent = { ...(cfg.agent || {}), sandbox: a };
+  config.save(cfg);
+  if (a === 'off') {
+    ui.success('Sandbox disabled — tools touch the host directly.');
+  } else if (a === 'jail') {
+    ui.success('Sandbox: jail. File and shell tools are locked to ' + sandbox.JAIL_ROOT);
+  } else {
+    ui.success('Sandbox: docker. Shell commands run in a container (' + sandbox.image(cfg) + ').');
+  }
+}
+
 function toolsCmd() {
   const cfg = config.load();
   const rows = [
@@ -880,6 +938,7 @@ function printHelp() {
     ['/key <provider> [k]', 'set a provider API key'],
     ['/url <provider> [u]', 'set a provider base URL'],
     ['/agent [on|off]', 'toggle tool use (the agent)'],
+    ['/sandbox [mode]', 'confine tools: off | jail | docker'],
     ['/tools', 'list the agent tools'],
     ['/soul', 'show/locate the SOUL.md personality file'],
     ['/memory', 'show or edit persistent memory'],
@@ -935,6 +994,7 @@ const slash = {
   key: { run: (args, ctx) => setKey(args, ctx) },
   url: { run: (args, ctx) => setUrl(args, ctx) },
   agent: { run: (args) => agentCmd(args) },
+  sandbox: { run: (args) => sandboxCmd(args) },
   tools: { run: () => toolsCmd() },
   soul: { run: () => soulCmd() },
   memory: { run: (args, ctx) => memoryCmd(args, ctx) },
@@ -1137,7 +1197,7 @@ function repl(ctx) {
 
 const UTILITY = new Set([
   'setup', 'use', 'model', 'models', 'providers', 'key', 'url',
-  'agent', 'tools', 'soul', 'memory', 'remember', 'forget', 'config',
+  'agent', 'sandbox', 'tools', 'soul', 'memory', 'remember', 'forget', 'config',
   'sessions', 'session', 'resume', 'delete-session',
   'skills', 'skill',
   'migrate',
