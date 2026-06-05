@@ -1,0 +1,14 @@
+{
+  "name": "goldid",
+  "version": "0.6.0",
+  "description": "A chat-first agentic CLI for AI models (Anthropic, OpenAI, Gemini, xAI, DeepSeek, OpenRouter, Ollama, vLLM, LM Studio) with streaming, tools, and a SOUL.md.",
+  "bin": {
+    "goldid": "goldid.js",
+    "gd": "goldid.js"
+  },
+  "main": "goldid.js",
+  "scripts": {
+    "start": "node goldid.js"
+  },
+  "license": "MIT"
+}
