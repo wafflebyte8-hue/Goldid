@@ -65,6 +65,20 @@
     </form>
   </dialog>
 
+  <dialog id="imageDialog">
+    <form id="imageForm" method="dialog">
+      <header><div><h2>Image generation</h2><p>Pick a provider and model for the generate_image tool. Choose one you already configured to reuse its key.</p></div><button class="icon-button" value="cancel" aria-label="Close"><img src="icons/close.svg" alt=""></button></header>
+      <label>Provider<select id="imageProviderSelect"></select></label>
+      <label>API key<input id="imageApiKeyInput" type="password" placeholder="Leave blank to keep the saved key"></label>
+      <div class="model-row">
+        <label>Image model<input id="imageModelInput" type="text" required></label>
+        <button id="fetchImageModelsButton" class="secondary-button" type="button">List models</button>
+      </div>
+      <div id="imageModelSuggestions" class="model-suggestions"></div>
+      <footer><button class="secondary-button" value="cancel">Cancel</button><button class="primary-button" value="default">Save</button></footer>
+    </form>
+  </dialog>
+
   <dialog id="detailDialog">
     <article><header><h2 id="detailTitle"></h2><button id="detailClose" class="icon-button" aria-label="Close"><img src="icons/close.svg" alt=""></button></header><pre id="detailContent"></pre></article>
   </dialog>

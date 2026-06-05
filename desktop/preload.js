@@ -8,6 +8,7 @@ contextBridge.exposeInMainWorld('goldid', {
   setAgent: (enabled) => ipcRenderer.invoke('config:agent', enabled),
   setSandbox: (mode) => ipcRenderer.invoke('config:sandbox', mode),
   setImageModel: (model) => ipcRenderer.invoke('config:imageModel', model),
+  setImageConfig: (input) => ipcRenderer.invoke('config:imageSetup', input),
   listModels: (provider) => ipcRenderer.invoke('models:list', provider),
   loadSession: (id) => ipcRenderer.invoke('session:load', id),
   deleteSession: (id) => ipcRenderer.invoke('session:delete', id),

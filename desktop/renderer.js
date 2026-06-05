@@ -51,7 +51,7 @@ const commands = [
   { usage: '/sandbox off', description: 'Disable tool sandboxing', run: () => setSandbox('off') },
   { usage: '/sandbox jail', description: 'Confine tools to the working directory', run: () => setSandbox('jail') },
   { usage: '/sandbox docker', description: 'Run shell in a Docker container', run: () => setSandbox('docker') },
-  { usage: '/image', description: 'Show or set the image-generation model', run: () => setImageModel('') },
+  { usage: '/image', description: 'Set up image generation (provider + model)', run: () => openImageSettings() },
   { usage: '/tools', description: 'Show desktop agent tools', run: () => showToolHelp() },
   { usage: '/clear', description: 'Clear the current desktop transcript', run: () => newChat() },
   { usage: '/config', description: 'Open provider configuration', run: () => openSettings() },
@@ -175,7 +175,13 @@ async function executeTypedCommand(text) {
   const sbMatch = normalized.match(/^\/sandbox(?:\s+(\S+))?$/);
   if (sbMatch) { await setSandbox(sbMatch[1] || ''); $('messageInput').value = ''; return true; }
   const imgMatch = trimmed.match(/^\/image(?:\s+(.+))?$/i);
-  if (imgMatch) { await setImageModel((imgMatch[1] || '').trim()); $('messageInput').value = ''; return true; }
+  if (imgMatch) {
+    $('messageInput').value = '';
+    const arg = (imgMatch[1] || '').trim();
+    if (!arg) openImageSettings();        // no arg → full dialog
+    else await setImageModel(arg);        // /image <model> or /image clear → quick set
+    return true;
+  }
   const command = commands.find((item) => item.usage === normalized);
   if (!command) {
     showNotice(`Unknown command: ${text}\n\nUse /help to see desktop commands.`);
@@ -291,6 +297,62 @@ async function fetchModels() {
   } finally {
     button.disabled = false;
     button.textContent = 'Fetch models';
+  }
+}
+
+// Image-capable providers and their default image models (mirrors lib/providers.js).
+const IMAGE_PROVIDERS = ['openai', 'xai', 'gemini', 'openrouter'];
+const IMAGE_DEFAULTS = {
+  openai: 'gpt-image-1',
+  xai: 'grok-2-image',
+  gemini: 'gemini-2.0-flash-preview-image-generation',
+  openrouter: 'google/gemini-2.5-flash-image-preview',
+};
+
+function openImageSettings() {
+  const cfg = state.snapshot.config;
+  const opts = IMAGE_PROVIDERS.map((key) => {
+    const p = cfg.providers[key];
+    if (!p) return '';
+    const tag = p.hasKey ? ' · has key' : ' · no key';
+    return `<option value="${key}">${escapeHtml(p.label)}${tag}</option>`;
+  }).filter(Boolean).join('');
+  $('imageProviderSelect').innerHTML = opts;
+  $('imageProviderSelect').value = cfg.agent?.imageProvider || cfg.active.provider || IMAGE_PROVIDERS[0];
+  syncImageForm();
+  $('imageDialog').showModal();
+}
+
+function syncImageForm() {
+  const cfg = state.snapshot.config;
+  const key = $('imageProviderSelect').value;
+  const p = cfg.providers[key] || {};
+  $('imageApiKeyInput').placeholder = p.hasKey ? 'Leave blank to reuse the saved key' : 'Paste an API key';
+  $('imageApiKeyInput').value = '';
+  // Pre-fill with the current image model if this provider is selected, else its default.
+  const current = cfg.agent?.imageProvider === key ? cfg.agent?.imageModel : '';
+  $('imageModelInput').value = current || IMAGE_DEFAULTS[key] || '';
+  $('imageModelSuggestions').innerHTML = '';
+}
+
+async function fetchImageModels() {
+  const button = $('fetchImageModelsButton');
+  const key = $('imageProviderSelect').value;
+  button.disabled = true;
+  button.textContent = 'Listing…';
+  try {
+    const models = await window.goldid.listModels(key);
+    const def = IMAGE_DEFAULTS[key];
+    const ordered = [...new Set([def, ...models].filter(Boolean))];
+    $('imageModelSuggestions').innerHTML = ordered.slice(0, 100)
+      .map((model) => `<button type="button">${escapeHtml(model)}</button>`).join('');
+    $('imageModelSuggestions').querySelectorAll('button')
+      .forEach((item) => item.addEventListener('click', () => { $('imageModelInput').value = item.textContent; }));
+  } catch (error) {
+    $('imageModelSuggestions').textContent = error.message;
+  } finally {
+    button.disabled = false;
+    button.textContent = 'List models';
   }
 }
 
@@ -466,6 +528,26 @@ $('settingsForm').addEventListener('submit', async (event) => {
   $('apiKeyInput').value = '';
   $('settingsDialog').close();
   await refresh();
+});
+
+$('imageProviderSelect').addEventListener('change', syncImageForm);
+$('fetchImageModelsButton').addEventListener('click', fetchImageModels);
+$('imageForm').addEventListener('submit', async (event) => {
+  if (event.submitter?.value === 'cancel') return;
+  event.preventDefault();
+  try {
+    state.snapshot.config = await window.goldid.setImageConfig({
+      provider: $('imageProviderSelect').value,
+      apiKey: $('imageApiKeyInput').value,
+      model: $('imageModelInput').value.trim(),
+    });
+    renderStatus();
+  } catch (error) {
+    showNotice(error.message || String(error));
+    return;
+  }
+  $('imageApiKeyInput').value = '';
+  $('imageDialog').close();
 });
 
 refresh().catch((error) => {

@@ -81,6 +81,7 @@ function publicConfig() {
     agent: {
       tools: cfg.agent?.tools !== false,
       sandbox: sandbox.mode(cfg),
+      imageProvider: cfg.agent?.imageProvider || '',
       imageModel: cfg.agent?.imageModel || '',
     },
     providers: Object.fromEntries(Object.entries(providers.PROVIDERS).map(([key, def]) => {
@@ -145,6 +146,20 @@ ipcMain.handle('config:imageModel', (_, model) => {
   const m = String(model || '').trim();
   if (m) cfg.agent.imageModel = m;
   else delete cfg.agent.imageModel;
+  config.save(cfg);
+  return publicConfig();
+});
+
+ipcMain.handle('config:imageSetup', (_, input) => {
+  const cfg = config.load();
+  const provider = String(input.provider || '');
+  if (!providers.PROVIDERS[provider]) throw new Error('Unknown provider');
+  const model = String(input.model || '').trim();
+  if (!model) throw new Error('Choose an image model');
+  // Reuse the saved key by default; only overwrite if a new one was entered.
+  const apiKey = String(input.apiKey || '').trim();
+  if (apiKey) config.providerConf(cfg, provider).apiKey = apiKey;
+  cfg.agent = { ...(cfg.agent || {}), imageProvider: provider, imageModel: model };
   config.save(cfg);
   return publicConfig();
 });
