@@ -70,6 +70,7 @@ function publicConfig() {
   const cfg = config.load();
   return {
     active: cfg.active,
+    agent: { tools: cfg.agent?.tools !== false },
     providers: Object.fromEntries(Object.entries(providers.PROVIDERS).map(([key, def]) => {
       const conf = cfg.providers[key] || {};
       return [key, {
@@ -104,6 +105,13 @@ ipcMain.handle('config:save', (_, input) => {
   if (typeof input.apiKey === 'string' && input.apiKey.trim()) conf.apiKey = input.apiKey.trim();
   if (typeof input.baseUrl === 'string' && input.baseUrl.trim()) conf.baseUrl = input.baseUrl.trim();
   cfg.active = { provider, model: String(input.model || '').trim() };
+  config.save(cfg);
+  return publicConfig();
+});
+
+ipcMain.handle('config:agent', (_, enabled) => {
+  const cfg = config.load();
+  cfg.agent = { ...(cfg.agent || {}), tools: Boolean(enabled) };
   config.save(cfg);
   return publicConfig();
 });

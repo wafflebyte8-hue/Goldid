@@ -103,6 +103,11 @@ disabled with `/agent off`, turn them back on from the CLI with `/agent on`.
 Read-only tools run automatically; commands and file writes always show an
 approval dialog first.
 
+Type `/` in the desktop composer to open its command menu. Use the arrow keys
+to select a command, `Tab` to complete it, and `Enter` to run it. Desktop
+commands include `/new`, `/settings`, `/sessions`, `/skills`, `/memory`,
+`/agent on`, `/agent off`, `/tools`, `/clear`, and `/help`.
+
 For local development:
 
 ```powershell

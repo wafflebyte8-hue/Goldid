@@ -2,6 +2,8 @@
 
 const state = { snapshot: null, messages: [], sessionId: null, activeTab: 'sessions', requestId: null, streamingNode: null, toolEvents: new Map() };
 let sessionPendingDelete = null;
+let commandIndex = 0;
+let visibleCommands = [];
 const $ = (id) => document.getElementById(id);
 const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
@@ -26,6 +28,108 @@ function renderStatus() {
   $('activeModel').textContent = active.model || 'Open settings';
   $('connectionDot').classList.toggle('online', Boolean(provider && active.model));
   $('workingDirectory').textContent = state.snapshot.cwd;
+}
+
+const commands = [
+  { usage: '/new', description: 'Start a new conversation', run: () => newChat() },
+  { usage: '/reset', description: 'Start a new conversation', run: () => newChat() },
+  { usage: '/settings', description: 'Open provider and model settings', run: () => openSettings() },
+  { usage: '/model', description: 'Open model settings', run: () => openSettings() },
+  { usage: '/providers', description: 'Open provider settings', run: () => openSettings() },
+  { usage: '/sessions', description: 'Show saved conversations', run: () => selectSidebarTab('sessions') },
+  { usage: '/skills', description: 'Show installed skills', run: () => selectSidebarTab('skills') },
+  { usage: '/memory', description: 'Show persistent memory', run: () => selectSidebarTab('memory') },
+  { usage: '/agent on', description: 'Enable agent tools', run: () => setAgent(true) },
+  { usage: '/agent off', description: 'Disable agent tools', run: () => setAgent(false) },
+  { usage: '/tools', description: 'Show desktop agent tools', run: () => showToolHelp() },
+  { usage: '/clear', description: 'Clear the current desktop transcript', run: () => newChat() },
+  { usage: '/config', description: 'Open provider configuration', run: () => openSettings() },
+  { usage: '/help', description: 'Show available desktop commands', run: () => showCommandHelp() },
+];
+
+function selectSidebarTab(name) {
+  const tab = document.querySelector(`.tab[data-tab="${name}"]`);
+  if (!tab) return;
+  document.querySelectorAll('.tab').forEach((item) => item.classList.toggle('active', item === tab));
+  state.activeTab = name;
+  renderSidebar();
+}
+
+async function setAgent(enabled) {
+  state.snapshot.config = await window.goldid.setAgent(enabled);
+  renderStatus();
+  showNotice(`Agent tools ${enabled ? 'enabled' : 'disabled'}.`);
+}
+
+function showNotice(text) {
+  $('detailTitle').textContent = 'GolDid';
+  $('detailContent').textContent = text;
+  $('detailDialog').showModal();
+}
+
+function showCommandHelp() {
+  $('detailTitle').textContent = 'Desktop commands';
+  $('detailContent').textContent = commands.map((item) => `${item.usage.padEnd(16)} ${item.description}`).join('\n');
+  $('detailDialog').showModal();
+}
+
+function showToolHelp() {
+  $('detailTitle').textContent = 'Desktop agent tools';
+  $('detailContent').textContent = [
+    'time             Current date and time',
+    'cwd              Working directory',
+    'memory           Persistent memory',
+    'skills_list      Installed skills',
+    'skill_view       Full skill instructions',
+    'list_dir         Directory contents',
+    'read_file        Read a text file',
+    'file_info        File metadata',
+    'find_files       Find files recursively',
+    'search_text      Search inside files',
+    'web_search       Search the web',
+    'write_file       Create or overwrite a file (approval required)',
+    'shell            Run a command (approval required)',
+  ].join('\n');
+  $('detailDialog').showModal();
+}
+
+function renderCommandMenu() {
+  const input = $('messageInput').value.trimStart();
+  const menu = $('commandMenu');
+  if (!input.startsWith('/')) {
+    menu.classList.remove('open');
+    return;
+  }
+  const query = input.toLowerCase();
+  visibleCommands = commands.filter((item) => item.usage.toLowerCase().startsWith(query));
+  commandIndex = Math.min(commandIndex, Math.max(0, visibleCommands.length - 1));
+  if (!visibleCommands.length) {
+    menu.classList.remove('open');
+    return;
+  }
+  menu.innerHTML = visibleCommands.map((item, index) =>
+    `<button type="button" class="command-option ${index === commandIndex ? 'active' : ''}" data-command-index="${index}" role="option" aria-selected="${index === commandIndex}"><code>${escapeHtml(item.usage)}</code><span>${escapeHtml(item.description)}</span></button>`
+  ).join('');
+  menu.classList.add('open');
+  menu.querySelectorAll('[data-command-index]').forEach((button) => button.addEventListener('click', () => executeCommand(visibleCommands[Number(button.dataset.commandIndex)])));
+}
+
+async function executeCommand(command) {
+  if (!command) return false;
+  $('messageInput').value = '';
+  $('commandMenu').classList.remove('open');
+  await command.run();
+  return true;
+}
+
+async function executeTypedCommand(text) {
+  const normalized = text.trim().toLowerCase();
+  const command = commands.find((item) => item.usage === normalized);
+  if (!command) {
+    showNotice(`Unknown command: ${text}\n\nUse /help to see desktop commands.`);
+    return true;
+  }
+  return executeCommand(command);
 }
 
 function renderSidebar() {
@@ -143,6 +247,10 @@ async function sendMessage(event) {
   const input = $('messageInput');
   const text = input.value.trim();
   if (!text || $('sendButton').disabled) return;
+  if (text.startsWith('/')) {
+    await executeTypedCommand(text);
+    return;
+  }
   state.messages.push({ role: 'user', content: text });
   input.value = '';
   input.style.height = '';
@@ -223,9 +331,7 @@ async function deletePendingSession() {
 }
 
 document.querySelectorAll('.tab').forEach((tab) => tab.addEventListener('click', () => {
-  document.querySelectorAll('.tab').forEach((item) => item.classList.toggle('active', item === tab));
-  state.activeTab = tab.dataset.tab;
-  renderSidebar();
+  selectSidebarTab(tab.dataset.tab);
 }));
 $('newChatButton').addEventListener('click', newChat);
 $('settingsButton').addEventListener('click', openSettings);
@@ -253,12 +359,48 @@ $('composer').addEventListener('submit', sendMessage);
 $('messageInput').addEventListener('input', (event) => {
   event.target.style.height = 'auto';
   event.target.style.height = `${Math.min(event.target.scrollHeight, 180)}px`;
+  commandIndex = 0;
+  renderCommandMenu();
 });
 $('messageInput').addEventListener('keydown', (event) => {
+  if ($('commandMenu').classList.contains('open')) {
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      commandIndex = (commandIndex + 1) % visibleCommands.length;
+      renderCommandMenu();
+      return;
+    }
+    if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      commandIndex = (commandIndex - 1 + visibleCommands.length) % visibleCommands.length;
+      renderCommandMenu();
+      return;
+    }
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      $('commandMenu').classList.remove('open');
+      return;
+    }
+    if (event.key === 'Tab') {
+      event.preventDefault();
+      $('messageInput').value = visibleCommands[commandIndex].usage;
+      $('messageInput').setSelectionRange($('messageInput').value.length, $('messageInput').value.length);
+      renderCommandMenu();
+      return;
+    }
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
+      executeCommand(visibleCommands[commandIndex]);
+      return;
+    }
+  }
   if (event.key === 'Enter' && !event.shiftKey) {
     event.preventDefault();
     $('composer').requestSubmit();
   }
+});
+document.addEventListener('click', (event) => {
+  if (!event.target.closest('.composer')) $('commandMenu').classList.remove('open');
 });
 $('settingsForm').addEventListener('submit', async (event) => {
   if (event.submitter?.value === 'cancel') return;

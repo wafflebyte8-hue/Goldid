@@ -5,6 +5,7 @@ const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('goldid', {
   snapshot: () => ipcRenderer.invoke('app:snapshot'),
   saveConfig: (input) => ipcRenderer.invoke('config:save', input),
+  setAgent: (enabled) => ipcRenderer.invoke('config:agent', enabled),
   listModels: (provider) => ipcRenderer.invoke('models:list', provider),
   loadSession: (id) => ipcRenderer.invoke('session:load', id),
   deleteSession: (id) => ipcRenderer.invoke('session:delete', id),
