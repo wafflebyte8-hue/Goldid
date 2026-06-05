@@ -22,8 +22,9 @@ const memory = require('./lib/memory');
 const sessions = require('./lib/sessions');
 const projectContext = require('./lib/context');
 const skills = require('./lib/skills');
+const migrate = require('./lib/migrate');
 
-const VERSION = '0.8.0';
+const VERSION = '0.9.0';
 const MAX_AGENT_STEPS = 6;
 const TOOL_TAG = '<tool_call>';
 
@@ -751,6 +752,72 @@ function showSkill(args, ctx) {
   console.log('');
 }
 
+function migrationOptions(args) {
+  const flags = new Set(args.filter((arg) => arg.startsWith('--')));
+  const source = args.find((arg) => ['both', 'hermes', 'openclaw'].includes(arg.toLowerCase())) || 'both';
+  const valueAfter = (flag) => {
+    const index = args.indexOf(flag);
+    return index >= 0 ? args[index + 1] : '';
+  };
+  return {
+    source: source.toLowerCase(),
+    includeSecrets: flags.has('--secrets'),
+    overwrite: flags.has('--overwrite'),
+    dryRun: flags.has('--dry-run'),
+    yes: flags.has('--yes'),
+    hermesDir: valueAfter('--hermes-dir') || undefined,
+    openclawDir: valueAfter('--openclaw-dir') || undefined,
+  };
+}
+
+function showMigrationPlan(plan, opts) {
+  const summary = migrate.summarize(plan);
+  const rows = [
+    ui.kv('sources', summary.sources.length
+      ? summary.sources.map((item) => `${item.name}: ${item.path}`).join(', ')
+      : ui.dim('none found')),
+    ui.kv('mode', opts.dryRun ? ui.amber('dry run') : ui.gold('import')),
+    ui.kv('secrets', opts.includeSecrets ? ui.amber(`${summary.secretCount} found`) : ui.dim('excluded')),
+    ui.kv('overwrite', opts.overwrite ? ui.color.yellow('yes') : ui.dim('no')),
+    '',
+    ui.amber('Files'),
+    ...Object.entries(summary.files).map(([kind, count]) => ui.kv(kind, String(count))),
+    '',
+    ui.amber('Providers'),
+    ...(summary.providers.length
+      ? summary.providers.map((item) =>
+        `  ${ui.gold(item.source)} ${ui.dim('->')} ${item.provider || '(unknown)'}${item.model ? ' / ' + item.model : ''}`)
+      : [ui.dim('  (none found)')]),
+  ];
+  if (summary.warnings.length) rows.push('', ...summary.warnings.map((warning) => ui.color.yellow(warning)));
+  ui.panel(rows, { title: ui.gold('Migration Preview'), maxWidth: 120 });
+  console.log('');
+}
+
+async function migrateCmd(args, ctx) {
+  const opts = migrationOptions(args);
+  const plan = migrate.buildPlan(opts);
+  showMigrationPlan(plan, opts);
+  if (!plan.sources.length || opts.dryRun) return;
+  if (!opts.yes) {
+    if (!process.stdin.isTTY) return ui.warning('Migration needs --yes when no interactive terminal is available.');
+    const answer = (await ctx.ask(ui.amber('  apply this migration? (y/N): '))).trim().toLowerCase();
+    if (!answer.startsWith('y')) return ui.info('Migration cancelled.');
+  }
+  try {
+    const report = migrate.applyPlan(plan, opts);
+    ui.success(
+      `Migration complete: ${report.copied} copied, ${report.merged} merged, ` +
+      `${report.skipped} skipped, ${report.providers} providers, ${report.secrets} secrets.`
+    );
+    if (report.unsupported.length) {
+      ui.warning('Unsupported providers skipped: ' + report.unsupported.join(', '));
+    }
+  } catch (e) {
+    ui.error('Migration failed: ' + e.message);
+  }
+}
+
 function agentCmd(args) {
   const cfg = config.load();
   const cur = toolsEnabled(cfg);
@@ -796,6 +863,7 @@ function printHelp() {
     ['/delete-session <id>', 'delete a saved conversation'],
     ['/skills', 'list compatible installed skills'],
     ['/skill <name>', 'inspect one skill'],
+    ['/migrate [source]', 'import Hermes/OpenClaw data'],
     ['/remember [target] <text>', 'save memory/user/personality'],
     ['/forget [target] <text>', 'remove a memory entry'],
     ['/config', 'show current configuration'],
@@ -850,6 +918,7 @@ const slash = {
   'delete-session': { run: (args, ctx) => deleteSession(args, ctx) },
   skills: { run: () => showSkills() },
   skill: { run: (args, ctx) => showSkill(args, ctx) },
+  migrate: { run: (args, ctx) => migrateCmd(args, ctx) },
   remember: { run: (args, ctx) => rememberCmd(args, ctx) },
   forget: { run: (args, ctx) => forgetCmd(args, ctx) },
   config: { run: () => showConfig() },
@@ -1045,6 +1114,7 @@ const UTILITY = new Set([
   'agent', 'tools', 'soul', 'memory', 'remember', 'forget', 'config',
   'sessions', 'session', 'resume', 'delete-session',
   'skills', 'skill',
+  'migrate',
   'reset', 'clear', 'version', 'help', 'exit', 'quit',
 ]);
 

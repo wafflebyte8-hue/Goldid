@@ -64,6 +64,7 @@ gd "write a haiku about terminals"
 - Save, search, and resume previous conversations
 - Load project-specific instructions from `GOLDID.md` or `AGENTS.md`
 - Load portable Hermes, OpenClaw, and AgentSkills-style skills
+- Import usable data from Hermes and OpenClaw together
 - Read and search files
 - Search the web
 - Run approved shell commands
@@ -220,8 +221,9 @@ first:
 3. `<project>/.goldid/skills`
 4. `~/.goldid/skills`
 5. `~/.agents/skills`
-6. `~/.hermes/skills`
-7. `~/.openclaw/skills`
+6. `%HERMES_HOME%/skills` or `~/.hermes/skills`
+7. `%HERMES_HOME%/hermes-agent/skills` for bundled Hermes skills
+8. `~/.openclaw/skills`
 
 Grouped layouts such as `skills/software-development/release-check/SKILL.md`
 are supported. Skills restricted to another operating system through the
@@ -242,6 +244,61 @@ Use:
 Third-party skills are instructions, not trusted code. Read them before use.
 GolDid does not execute Hermes inline-shell expressions automatically. Any
 commands requested by a skill still go through the normal `shell` approval.
+
+## Migrating from Hermes and OpenClaw
+
+GolDid can inspect both installations at the same time and import the parts it
+understands:
+
+```powershell
+gd migrate --dry-run
+gd migrate --secrets
+```
+
+The default source is `both`. You can choose one:
+
+```powershell
+gd migrate hermes --dry-run
+gd migrate openclaw --dry-run
+```
+
+Supported imports:
+
+- Skills and their supporting files
+- `SOUL.md`
+- `MEMORY.md`, `USER.md`, and `PERSONALITY.md`
+- OpenClaw workspace instructions for manual review
+- Supported provider names, model selection, and base URLs
+- API keys for providers GolDid supports
+
+API keys are excluded unless you explicitly add `--secrets`. Imported keys are
+written through GolDid's encrypted configuration store and are not printed in
+the preview.
+
+Migration is conflict-safe by default:
+
+- Memory entries are merged and deduplicated.
+- Existing files and skills are skipped.
+- Imported skills go under `~/.goldid/skills/hermes-imports/` and
+  `~/.goldid/skills/openclaw-imports/`.
+- Add `--overwrite` only when you intentionally want imported files and
+  provider settings to replace existing values.
+
+Use `--yes` to skip the confirmation prompt:
+
+```powershell
+gd migrate both --secrets --yes
+```
+
+Custom source locations are also supported:
+
+```powershell
+gd migrate both --hermes-dir D:\HermesData --openclaw-dir D:\OpenClawData --dry-run
+```
+
+OAuth sessions, messaging accounts, cron jobs, plugins, browser state, and
+providers GolDid does not support are not imported. The migration report lists
+unsupported providers so they can be configured manually.
 
 ## API key security
 
@@ -274,6 +331,7 @@ Do not upload either file.
 | `/delete-session <id>` | Delete a saved conversation |
 | `/skills` | List compatible installed skills |
 | `/skill <name>` | Inspect a skill's full instructions |
+| `/migrate [source]` | Import Hermes/OpenClaw data |
 | `/remember [target] <text>` | Add a memory |
 | `/forget [target] <text>` | Remove a memory |
 | `/config` | Show current configuration |
@@ -297,6 +355,7 @@ GolDid/
     sessions.js    Saved conversation storage and search
     context.js     Project instruction discovery
     skills.js      Hermes/OpenClaw-compatible skill discovery
+    migrate.js     Combined Hermes/OpenClaw migration
     tools.js       Agent tools
     ui.js          Terminal interface
   package.json
