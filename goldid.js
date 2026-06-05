@@ -21,8 +21,9 @@ const tools = require('./lib/tools');
 const memory = require('./lib/memory');
 const sessions = require('./lib/sessions');
 const projectContext = require('./lib/context');
+const skills = require('./lib/skills');
 
-const VERSION = '0.7.0';
+const VERSION = '0.8.0';
 const MAX_AGENT_STEPS = 6;
 const TOOL_TAG = '<tool_call>';
 
@@ -123,6 +124,7 @@ function commandRows() {
     `${ui.gold('/tools')}      ${ui.dim('show agent capabilities')}`,
     `${ui.gold('/memory')}     ${ui.dim('view persistent memory')}`,
     `${ui.gold('/sessions')}   ${ui.dim('find or resume past chats')}`,
+    `${ui.gold('/skills')}     ${ui.dim('inspect reusable skills')}`,
     `${ui.gold('/model')}      ${ui.dim('switch or inspect model')}`,
     `${ui.gold('/help')}       ${ui.dim('command reference')}`,
     `${ui.gold('/exit')}       ${ui.dim('quit')}`,
@@ -341,7 +343,7 @@ async function runTool(call, ctx) {
   }
   const spin = ui.spinner('running ' + call.name);
   try {
-    const out = await tool.run(call.args || {});
+    const out = await tool.run(call.args || {}, ctx);
     spin.stop();
     console.log(ui.dim(`  ${ui.symbols.hook} ` + toolPreview(call.name, out)));
     if (call.name === 'memory') loadConversationMemory(ctx);
@@ -375,6 +377,7 @@ async function handleChat(text, conversation, ctx) {
     cwd: process.cwd(),
     memorySnapshot,
     projectContext: projectContext.format(process.cwd()),
+    skillsCatalog: skills.catalog(process.cwd()),
   });
 
   conversation.push({ role: 'user', content: text });
@@ -707,6 +710,47 @@ function deleteSession(args, ctx) {
   }
 }
 
+function showSkills() {
+  const installed = skills.listResult(process.cwd());
+  const rows = installed.map((skill) => [
+    ui.gold(skill.name),
+    ui.dim(skill.source),
+    ui.dim(skill.version || ''),
+    ui.clip(skill.description, 58),
+  ]);
+  ui.panel(
+    [
+      ...(rows.length
+        ? ui.table([[ui.dim('name'), ui.dim('source'), ui.dim('version'), ui.dim('description')], ...rows])
+        : [ui.dim('  (no compatible skills found)')]),
+      '',
+      ui.dim('view: ') + ui.amber('/skill <name>'),
+      ui.dim('native directory: ') + ui.gold(skills.defaultRoots(process.cwd())[3].path),
+    ],
+    { title: ui.gold('Skills'), maxWidth: 124 }
+  );
+  console.log('');
+}
+
+function showSkill(args, ctx) {
+  const name = args.join(' ').trim();
+  if (!name) return ui.warning('Usage: /skill <name>');
+  const skill = skills.find(name, process.cwd());
+  if (!skill) return ui.warning(`Skill not found: ${name}`);
+  console.log('');
+  ui.panel(
+    [
+      ui.kv('name', ui.gold(skill.name)),
+      ui.kv('source', ui.dim(skill.source)),
+      ui.kv('file', ui.dim(ui.clip(skill.file, 88))),
+      '',
+      skills.render(skill, ctx.sessionId),
+    ],
+    { title: ui.gold('Skill'), maxWidth: 120 }
+  );
+  console.log('');
+}
+
 function agentCmd(args) {
   const cfg = config.load();
   const cur = toolsEnabled(cfg);
@@ -750,6 +794,8 @@ function printHelp() {
     ['/session [name]', 'show or name the current session'],
     ['/resume <id>', 'resume a saved conversation'],
     ['/delete-session <id>', 'delete a saved conversation'],
+    ['/skills', 'list compatible installed skills'],
+    ['/skill <name>', 'inspect one skill'],
     ['/remember [target] <text>', 'save memory/user/personality'],
     ['/forget [target] <text>', 'remove a memory entry'],
     ['/config', 'show current configuration'],
@@ -802,6 +848,8 @@ const slash = {
   session: { run: (args, ctx, convo) => sessionCmd(args, ctx, convo) },
   resume: { run: (args, ctx, convo) => resumeSession(args, ctx, convo) },
   'delete-session': { run: (args, ctx) => deleteSession(args, ctx) },
+  skills: { run: () => showSkills() },
+  skill: { run: (args, ctx) => showSkill(args, ctx) },
   remember: { run: (args, ctx) => rememberCmd(args, ctx) },
   forget: { run: (args, ctx) => forgetCmd(args, ctx) },
   config: { run: () => showConfig() },
@@ -996,6 +1044,7 @@ const UTILITY = new Set([
   'setup', 'use', 'model', 'models', 'providers', 'key', 'url',
   'agent', 'tools', 'soul', 'memory', 'remember', 'forget', 'config',
   'sessions', 'session', 'resume', 'delete-session',
+  'skills', 'skill',
   'reset', 'clear', 'version', 'help', 'exit', 'quit',
 ]);
 
