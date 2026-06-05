@@ -360,8 +360,10 @@ async function runTool(call, ctx) {
   // Image generation runs against the active provider; expose a helper the tool
   // calls so tools.js stays provider-agnostic.
   ctx.generateImage = (prompt, opts = {}) => {
-    const key = cfg.active.provider;
-    if (!key) throw new Error('no provider configured — run /setup first');
+    // Image generation uses its own provider (set via /image), falling back to
+    // the active chat provider when none is configured.
+    const key = cfg.agent?.imageProvider || cfg.active.provider;
+    if (!key) throw new Error('no provider configured — run /image or /setup first');
     const conf = config.providerConf(cfg, key);
     // Model precedence: explicit tool arg → configured /image model → provider default.
     const model = opts.model || cfg.agent?.imageModel || undefined;
@@ -915,26 +917,80 @@ function sandboxCmd(args) {
   }
 }
 
-function imageCmd(args) {
+/**
+ * Interactive image-generation setup, modeled on /setup: pick an image-capable
+ * provider (reusing a saved key from chat setup if it has one), then choose the
+ * image model. Stored separately at cfg.agent.imageProvider/imageModel so image
+ * generation can use a different provider than the chat model.
+ */
+async function imageCmd(args, ctx) {
   const cfg = config.load();
-  const cur = cfg.agent && cfg.agent.imageModel;
   const a = (args[0] || '').trim();
-  if (!a) {
-    if (cur) ui.kv('image model', ui.amber(cur));
-    else ui.info('No image model set — generate_image uses a per-provider default.');
-    ui.info('set one with /image <model>, or /image clear to use the default');
-    return;
-  }
+
+  // Quick reset, no wizard.
   if (/^(none|clear|default|off|reset)$/i.test(a)) {
     cfg.agent = { ...(cfg.agent || {}) };
     delete cfg.agent.imageModel;
+    delete cfg.agent.imageProvider;
     config.save(cfg);
-    ui.success('Image model cleared — using the provider default.');
-    return;
+    return ui.success('Image generation reset — using the active provider and its default model.');
   }
-  cfg.agent = { ...(cfg.agent || {}), imageModel: a };
+
+  const imgKeys = providers.IMAGE_PROVIDERS;
+  ui.header('Image generation');
+  ui.info('Choose a provider and model for the generate_image tool.');
+  ui.info('Pick a provider you already configured for chat to reuse its key.');
+
+  const labels = imgKeys.map((k) => {
+    const d = providers.PROVIDERS[k];
+    const conf = cfg.providers[k] || {};
+    const status = conf.apiKey ? ui.color.green(ui.symbols.check + ' has key') : ui.dim('no key');
+    return `${d.label.padEnd(15)} ${ui.dim(d.kind)}  ${status}`;
+  });
+  const curIdx = imgKeys.indexOf(cfg.agent?.imageProvider || cfg.active.provider);
+  const idx = await ui.menu(ctx, 'Choose an image provider:', labels, curIdx >= 0 ? curIdx : 0);
+  const key = imgKeys[idx];
+  const def = providers.PROVIDERS[key];
+  const conf = config.providerConf(cfg, key);
+
+  ui.header(`Configure ${def.label} images`);
+  if (def.needsKey) {
+    if (conf.apiKey) {
+      ui.success(`Reusing the saved ${def.label} key (${maskKey(conf.apiKey)}).`);
+      const replace = (await ctx.ask(ui.amber('  Use a different key instead? (y/N): '))).trim().toLowerCase();
+      if (replace.startsWith('y')) {
+        const k = (await ui.askMasked(ctx.rl, ui.amber(`  ${def.label} key (${def.keyHint}): `))).trim();
+        if (k) conf.apiKey = k;
+      }
+    } else {
+      ui.info(`No saved ${def.label} key. Paste one (hidden), or leave blank to cancel.`);
+      const k = (await ui.askMasked(ctx.rl, ui.amber(`  ${def.label} key (${def.keyHint}): `))).trim();
+      if (!k) return ui.warning('No key entered — image setup cancelled.');
+      conf.apiKey = k;
+    }
+  }
   config.save(cfg);
-  ui.success('Image model set to ' + a + ' (used by generate_image).');
+
+  ui.header('Choose an image model');
+  const suggested = cfg.agent?.imageModel || providers.DEFAULT_IMAGE_MODEL[key] || '';
+  const q = suggested ? `  Image model [${suggested}]: ` : '  Image model: ';
+  const entered = (await ctx.ask(ui.amber(q))).trim();
+  const model = entered || suggested;
+  if (!model) return ui.warning('No model entered — image setup cancelled.');
+
+  cfg.agent = { ...(cfg.agent || {}), imageProvider: key, imageModel: model };
+  config.save(cfg);
+  console.log('');
+  ui.panel(
+    [
+      ui.kv('image provider', ui.gold(def.label)),
+      ui.kv('image model', ui.gold(ui.clip(model, 58))),
+      '',
+      ui.dim('the model can now use ') + ui.amber('generate_image'),
+    ],
+    { title: ui.gold(`${ui.symbols.check} Image generation ready`), border: ui.gold, maxWidth: 92 }
+  );
+  console.log('');
 }
 
 function toolsCmd() {
@@ -963,7 +1019,7 @@ function printHelp() {
     ['/url <provider> [u]', 'set a provider base URL'],
     ['/agent [on|off]', 'toggle tool use (the agent)'],
     ['/sandbox [mode]', 'confine tools: off | jail | docker'],
-    ['/image [model]', 'show/set the image-generation model'],
+    ['/image', 'set up image generation (provider + model)'],
     ['/tools', 'list the agent tools'],
     ['/soul', 'show/locate the SOUL.md personality file'],
     ['/memory', 'show or edit persistent memory'],
@@ -1020,7 +1076,7 @@ const slash = {
   url: { run: (args, ctx) => setUrl(args, ctx) },
   agent: { run: (args) => agentCmd(args) },
   sandbox: { run: (args) => sandboxCmd(args) },
-  image: { run: (args) => imageCmd(args) },
+  image: { run: (args, ctx) => imageCmd(args, ctx) },
   tools: { run: () => toolsCmd() },
   soul: { run: () => soulCmd() },
   memory: { run: (args, ctx) => memoryCmd(args, ctx) },

@@ -187,7 +187,7 @@ async function runDesktopTool(sender, call, sessionId) {
   const cfg = config.load();
   const ctx = { sessionId };
   ctx.generateImage = (prompt, opts = {}) => {
-    const key = cfg.active.provider;
+    const key = cfg.agent?.imageProvider || cfg.active.provider;
     if (!key) throw new Error('no provider configured');
     const conf = config.providerConf(cfg, key);
     const model = opts.model || cfg.agent?.imageModel || undefined;
