@@ -12,6 +12,13 @@ const skills = require('../lib/skills');
 const projectContext = require('../lib/context');
 const tools = require('../lib/tools');
 
+// The GolDid desktop app supports Windows and Linux only. On macOS, use the CLI.
+if (process.platform === 'darwin') {
+  console.error('The GolDid desktop app is not available on macOS. Use the CLI instead: gd');
+  app.quit();
+  process.exit(1);
+}
+
 let mainWindow;
 const approvals = new Map();
 const MAX_AGENT_STEPS = 6;
@@ -28,7 +35,7 @@ function createWindow() {
     minHeight: 640,
     backgroundColor: '#11110f',
     title: 'GolDid',
-    icon: path.join(__dirname, 'assets', 'goldid-logo.ico'),
+    icon: path.join(__dirname, 'assets', process.platform === 'win32' ? 'goldid-logo.ico' : 'goldid-logo.png'),
     autoHideMenuBar: true,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),

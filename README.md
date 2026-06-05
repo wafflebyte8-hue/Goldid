@@ -12,14 +12,17 @@ This is a personal project and still a work in progress. Roughly 40% of it was
 vibe-coded with AI assistance. I reviewed and shaped the result, but there may
 still be rough edges. Issues and pull requests are welcome.
 
-## Install on Windows
+## Install
+
+GolDid runs anywhere Node.js does. The terminal CLI works on **Windows, Linux,
+and macOS**. The desktop app is available on **Windows and Linux** (not macOS).
 
 You need:
 
-- Windows PowerShell or PowerShell 7
 - Node.js 18 or newer
+- Windows: Windows PowerShell or PowerShell 7
 
-Run:
+### Windows
 
 ```powershell
 irm https://raw.githubusercontent.com/wafflebyte8-hue/Goldid/main/setup.ps1 | iex
@@ -33,15 +36,40 @@ gd
 
 The installer puts the application in `C:\goldid`, sets the user-level
 `GOLDID_HOME` environment variable, and adds the `gd` command to your
-PowerShell profile. Running it again updates GolDid without deleting your
-settings or memories.
-
-It also installs the GolDid desktop app and creates shortcuts on the Windows
-Desktop and Start Menu. The desktop app shares the same encrypted provider
-configuration, memories, skills, and sessions as the CLI.
+PowerShell profile. It also installs the GolDid desktop app and creates
+shortcuts on the Windows Desktop and Start Menu.
 
 If Windows blocks access to `C:\goldid`, run PowerShell as Administrator or
 download the script and pass a different writable path with `-InstallDir`.
+
+### Linux and macOS
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/wafflebyte8-hue/Goldid/main/setup.sh | bash
+```
+
+Open a new terminal, then start GolDid:
+
+```bash
+gd
+```
+
+The installer puts the application in `~/.local/share/goldid`, sets
+`GOLDID_HOME`, and adds `gd` and `goldid` commands to `~/.local/bin` (ensuring
+it is on your `PATH`). On **Linux** it also installs the desktop app and adds a
+**GolDid** entry to your application menu. On **macOS** only the CLI is
+installed — the desktop app is not supported there.
+
+To install somewhere else, download the script and pass `--install-dir`:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/wafflebyte8-hue/Goldid/main/setup.sh -o setup.sh
+bash setup.sh --install-dir "$HOME/apps/goldid"
+```
+
+Running either installer again updates GolDid without deleting your settings or
+memories. The desktop app shares the same encrypted provider configuration,
+memories, skills, and sessions as the CLI.
 
 ### Uninstall
 
@@ -86,7 +114,10 @@ gd "write a haiku about terminals"
 
 ## Desktop app
 
-The Windows installer creates a **GolDid** shortcut. The desktop app includes:
+The desktop app runs on **Windows and Linux**. It is not available on macOS,
+where GolDid runs as the CLI only. The Windows installer creates a **GolDid**
+shortcut on the Desktop and Start Menu; the Linux installer adds a **GolDid**
+entry to your application menu. The desktop app includes:
 
 - Streaming model responses
 - Saved conversation browsing
@@ -108,9 +139,9 @@ to select a command, `Tab` to complete it, and `Enter` to run it. Desktop
 commands include `/new`, `/settings`, `/sessions`, `/skills`, `/memory`,
 `/agent on`, `/agent off`, `/tools`, `/clear`, and `/help`.
 
-For local development:
+For local development (Windows or Linux):
 
-```powershell
+```bash
 npm install
 npm run desktop
 ```
@@ -458,8 +489,10 @@ Do not upload either file.
 ```text
 GolDid/
   setup.ps1        Windows installer and updater
+  setup.sh         Linux/macOS installer and updater
   uninstall.ps1    Windows uninstaller
-  desktop-launch.ps1  Desktop runtime launcher
+  desktop-launch.ps1  Desktop runtime launcher (Windows)
+  desktop-launch.sh   Desktop runtime launcher (Linux)
   goldid.js        CLI, chat loop, commands, and setup wizard
   desktop/         Electron desktop application
     assets/        GolDid app logo
@@ -482,10 +515,18 @@ native `fetch` API.
 
 ## Updating
 
-Run the installer again:
+Run the installer again.
+
+Windows:
 
 ```powershell
 irm https://raw.githubusercontent.com/wafflebyte8-hue/Goldid/main/setup.ps1 | iex
+```
+
+Linux and macOS:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/wafflebyte8-hue/Goldid/main/setup.sh | bash
 ```
 
 Your files under `~/.goldid` are left alone.

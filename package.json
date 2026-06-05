@@ -9,7 +9,7 @@
   "main": "goldid.js",
   "scripts": {
     "start": "node goldid.js",
-    "desktop": "powershell -NoProfile -ExecutionPolicy Bypass -File desktop-launch.ps1"
+    "desktop": "electron desktop/main.js"
   },
   "dependencies": {
     "electron": "^36.5.0"
