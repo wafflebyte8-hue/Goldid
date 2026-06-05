@@ -27,7 +27,6 @@ const skills = require('./lib/skills');
 const migrate = require('./lib/migrate');
 
 const VERSION = '0.12.0';
-const MAX_AGENT_STEPS = 6;
 const TOOL_TAG = '<tool_call>';
 
 const toolsEnabled = (cfg) => cfg.agent?.tools !== false; // default on
@@ -434,7 +433,9 @@ async function handleChat(text, conversation, ctx) {
 
   conversation.push({ role: 'user', content: text });
 
-  for (let step = 0; step < MAX_AGENT_STEPS; step++) {
+  // Unlimited tool-calling: loop until the model produces a final answer with no
+  // tool call. The model controls termination — there is no fixed step cap.
+  while (true) {
     let full, shown, toolCalls;
     try {
       ({ full, shown, toolCalls } = await streamAssistant(cfg, system, conversation, useTools, schemas));
@@ -443,7 +444,6 @@ async function handleChat(text, conversation, ctx) {
       ui.error(e.message);
       return;
     }
-    const last = step === MAX_AGENT_STEPS - 1;
 
     // Native function-calling path.
     if (native && toolCalls.length) {
@@ -458,7 +458,6 @@ async function handleChat(text, conversation, ctx) {
         const result = await runTool({ name: tc.function.name, args }, ctx);
         conversation.push({ role: 'tool', tool_call_id: tc.id, content: result });
       }
-      if (last) console.log(ui.dim('(reached the tool-call limit for this turn)'));
       continue;
     }
 
@@ -474,7 +473,6 @@ async function handleChat(text, conversation, ctx) {
       role: 'user',
       content: `<tool_result name="${call.name}">\n${result}\n</tool_result>`,
     });
-    if (last) console.log(ui.dim('(reached the tool-call limit for this turn)'));
   }
   if (ctx.sessionId && conversation.length) {
     try {
@@ -1320,6 +1318,7 @@ async function oneShot(argv, ctx) {
 async function main() {
   prompt.ensureSoul();
   memory.ensureFiles();
+  skills.ensureScaffold();
   const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
   const ctx = {
     rl,

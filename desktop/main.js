@@ -22,7 +22,6 @@ if (process.platform === 'darwin') {
 
 let mainWindow;
 const approvals = new Map();
-const MAX_AGENT_STEPS = 6;
 
 if (process.env.GOLDID_DESKTOP_TEST_PROFILE) {
   app.setPath('userData', process.env.GOLDID_DESKTOP_TEST_PROFILE);
@@ -253,7 +252,9 @@ ipcMain.handle('chat:send', async (event, input) => {
   });
   let finalText = '';
 
-  for (let step = 0; step < MAX_AGENT_STEPS; step++) {
+  // Unlimited tool-calling: loop until the model returns a final answer with no
+  // tool call. The model controls termination — there is no fixed step cap.
+  while (true) {
     if (native) {
       const result = await providers.chatStream(
         cfg.active.provider,
@@ -311,6 +312,7 @@ ipcMain.handle('chat:send', async (event, input) => {
 app.whenReady().then(() => {
   prompt.ensureSoul();
   memory.ensureFiles();
+  skills.ensureScaffold();
   createWindow();
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
