@@ -973,10 +973,31 @@ async function imageCmd(args, ctx) {
 
   ui.header('Choose an image model');
   const suggested = cfg.agent?.imageModel || providers.DEFAULT_IMAGE_MODEL[key] || '';
-  const q = suggested ? `  Image model [${suggested}]: ` : '  Image model: ';
-  const entered = (await ctx.ask(ui.amber(q))).trim();
-  const model = entered || suggested;
-  if (!model) return ui.warning('No model entered — image setup cancelled.');
+
+  let model;
+  ui.info(`Fetching available models from ${def.label}...`);
+  let fetched = [];
+  try {
+    fetched = await providers.fetchModels(key, conf);
+  } catch (e) {
+    ui.warning('Could not fetch models: ' + e.message);
+  }
+
+  // Build the menu: known image model first, then the fetched list, then a
+  // manual-entry escape hatch for models the provider doesn't advertise.
+  const MANUAL = '✎  enter a model name manually';
+  const ordered = [...new Set([suggested, ...fetched].filter(Boolean))];
+  const choices = [...ordered, MANUAL];
+  const preselect = Math.max(0, ordered.indexOf(suggested));
+  const pick = await ui.menu(ctx, `${ordered.length} model(s) — choose one:`, choices, preselect, { pageSize: 14 });
+
+  if (choices[pick] === MANUAL) {
+    const q = suggested ? `  Image model [${suggested}]: ` : '  Image model: ';
+    model = (await ctx.ask(ui.amber(q))).trim() || suggested;
+  } else {
+    model = choices[pick];
+  }
+  if (!model) return ui.warning('No model selected — image setup cancelled.');
 
   cfg.agent = { ...(cfg.agent || {}), imageProvider: key, imageModel: model };
   config.save(cfg);
