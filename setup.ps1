@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-  [string]$InstallDir = (Join-Path $env:LOCALAPPDATA 'GolDid'),
+  [string]$InstallDir = 'C:\goldid',
   [switch]$RunSetup
 )
 
@@ -73,8 +73,12 @@ try {
   }
 
   Write-Step "Installing to $InstallDir..."
-  New-Item -ItemType Directory -Path $InstallDir -Force | Out-Null
-  foreach ($name in @('goldid.js', 'package.json', 'README.md', 'lib')) {
+  try {
+    New-Item -ItemType Directory -Path $InstallDir -Force | Out-Null
+  } catch {
+    throw "Could not create $InstallDir. Open PowerShell as Administrator or use -InstallDir with a writable path."
+  }
+  foreach ($name in @('goldid.js', 'package.json', 'README.md', 'uninstall.ps1', 'lib')) {
     $from = Join-Path $source.FullName $name
     if (-not (Test-Path -LiteralPath $from)) {
       throw "Required repository item is missing: $name"
@@ -97,6 +101,8 @@ try {
   foreach ($profilePath in $profiles) {
     Set-GolDidProfile -ProfilePath $profilePath -NodePath $node.Source -ScriptPath $entryPoint
   }
+  [Environment]::SetEnvironmentVariable('GOLDID_HOME', $InstallDir, 'User')
+  $env:GOLDID_HOME = $InstallDir
 
   Write-Host ''
   Write-Host 'GolDid installed successfully.' -ForegroundColor Green

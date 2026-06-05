@@ -31,9 +31,33 @@ Open a new PowerShell window, then start GolDid:
 gd
 ```
 
-The installer puts the application in `%LOCALAPPDATA%\GolDid` and adds the
-`gd` command to your PowerShell profile. Running it again updates GolDid
-without deleting your settings or memories.
+The installer puts the application in `C:\goldid`, sets the user-level
+`GOLDID_HOME` environment variable, and adds the `gd` command to your
+PowerShell profile. Running it again updates GolDid without deleting your
+settings or memories.
+
+If Windows blocks access to `C:\goldid`, run PowerShell as Administrator or
+download the script and pass a different writable path with `-InstallDir`.
+
+### Uninstall
+
+Run the installed uninstaller:
+
+```powershell
+& C:\goldid\uninstall.ps1
+```
+
+It checks the global `gd` command, installer-owned PowerShell profile blocks,
+`GOLDID_HOME`, and the default install path to locate GolDid. Personal settings,
+API keys, memories, sessions, and skills under `~/.goldid` are kept by default.
+
+To remove the application and all personal GolDid data:
+
+```powershell
+& C:\goldid\uninstall.ps1 -RemoveData
+```
+
+Use `-Yes` for a non-interactive uninstall.
 
 ## First run
 
@@ -399,6 +423,7 @@ Do not upload either file.
 ```text
 GolDid/
   setup.ps1        Windows installer and updater
+  uninstall.ps1    Windows uninstaller
   goldid.js        CLI, chat loop, commands, and setup wizard
   lib/
     config.js      Encrypted configuration storage
