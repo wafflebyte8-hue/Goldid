@@ -16,6 +16,7 @@ const readline = require('readline');
 const config = require('./lib/config');
 const providers = require('./lib/providers');
 const ui = require('./lib/ui');
+const markdown = require('./lib/markdown');
 const prompt = require('./lib/prompt');
 const tools = require('./lib/tools');
 const memory = require('./lib/memory');
@@ -240,10 +241,13 @@ async function streamAssistant(cfg, system, conversation, useTools, schemas) {
   const spin = ui.spinner(`${cfg.active.provider} / ${cfg.active.model}`);
   let spinStopped = false;
   let headerPrinted = false;
+  let started = false; // have we emitted any real (non-blank) content yet
   let buf = '';
-  let printedLen = 0;
+  let emitted = 0; // chars of `buf` already moved into `pending`
+  let pending = ''; // text not yet flushed as complete lines
   let hold = false; // withhold output that looks like a tool call
   let decided = false;
+  const md = markdown.createRenderer();
 
   const stopSpin = () => {
     if (!spinStopped) {
@@ -251,17 +255,36 @@ async function streamAssistant(cfg, system, conversation, useTools, schemas) {
       spinStopped = true;
     }
   };
-  const writePrintable = (upto) => {
-    if (upto <= printedLen) return;
-    let chunk = buf.slice(printedLen, upto);
-    printedLen = upto;
+  // Render and print one complete Markdown line (no trailing newline of its own).
+  const emitLine = (rawLine) => {
+    if (!started && !md.inFence() && rawLine.trim() === '') return; // skip leading blanks
+    const rendered = md.line(rawLine);
     if (!headerPrinted) {
-      chunk = chunk.replace(/^\s+/, ''); // drop leading blank lines some models emit
-      if (chunk === '') return; // nothing real to show yet
       process.stdout.write('\n' + ui.gold(ui.symbols.diamond + ' '));
       headerPrinted = true;
+    } else {
+      process.stdout.write('\n');
     }
-    process.stdout.write(chunk);
+    process.stdout.write(rendered);
+    started = true;
+  };
+  const flushLines = () => {
+    let nl;
+    while ((nl = pending.indexOf('\n')) >= 0) {
+      const line = pending.slice(0, nl);
+      pending = pending.slice(nl + 1);
+      emitLine(line);
+    }
+  };
+  // Move any newly-printable text (up to a tool-call tag) into `pending`.
+  const consume = (source) => {
+    const idx = source.indexOf(TOOL_TAG);
+    const printable = idx >= 0 ? source.slice(0, idx) : source;
+    if (printable.length > emitted) {
+      pending += printable.slice(emitted);
+      emitted = printable.length;
+      flushLines();
+    }
   };
 
   const onDelta = (delta) => {
@@ -275,9 +298,7 @@ async function streamAssistant(cfg, system, conversation, useTools, schemas) {
       }
     }
     if (hold) return;
-    const idx = buf.indexOf(TOOL_TAG);
-    const upto = idx >= 0 ? idx : Math.max(printedLen, buf.length - (TOOL_TAG.length - 1));
-    writePrintable(upto);
+    consume(buf);
   };
 
   let result;
@@ -294,9 +315,11 @@ async function streamAssistant(cfg, system, conversation, useTools, schemas) {
   const full = result.text || '';
   const toolCalls = result.toolCalls || [];
   if (!hold) {
-    buf = full;
-    const idx = full.indexOf(TOOL_TAG);
-    writePrintable(idx >= 0 ? idx : full.length);
+    consume(full); // pick up any text that arrived only in the final result
+    if (pending.length) {
+      emitLine(pending); // flush the trailing partial line
+      pending = '';
+    }
     if (headerPrinted) process.stdout.write('\n');
   }
   return { full, shown: headerPrinted, toolCalls };
@@ -305,7 +328,7 @@ async function streamAssistant(cfg, system, conversation, useTools, schemas) {
 /** Print a final (non-streamed) assistant answer that was held back. */
 function showAnswer(text) {
   const t = (text || '').trim();
-  if (t) console.log('\n' + ui.gold(ui.symbols.diamond + ' ') + t + '\n');
+  if (t) console.log('\n' + ui.gold(ui.symbols.diamond + ' ') + markdown.render(t) + '\n');
   else console.log(ui.dim('(no response)'));
 }
 

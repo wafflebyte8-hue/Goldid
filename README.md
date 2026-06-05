@@ -119,7 +119,7 @@ where GolDid runs as the CLI only. The Windows installer creates a **GolDid**
 shortcut on the Desktop and Start Menu; the Linux installer adds a **GolDid**
 entry to your application menu. The desktop app includes:
 
-- Streaming model responses
+- Streaming model responses with Markdown formatting
 - Saved conversation browsing
 - Provider, endpoint, API key, and model settings
 - Live model-list fetching
@@ -148,7 +148,7 @@ npm run desktop
 
 ## What it can do
 
-- Stream responses as they are generated
+- Stream responses as they are generated, formatted as Markdown
 - Talk to local and cloud models
 - Remember small, durable details between conversations
 - Save, search, and resume previous conversations
@@ -507,11 +507,14 @@ GolDid/
     migrate.js     Combined Hermes/OpenClaw migration
     tools.js       Agent tools
     ui.js          Terminal interface
+    markdown.js    Markdown to ANSI rendering for the terminal
   package.json
 ```
 
-GolDid has no npm package dependencies. It uses Node.js built-ins and the
-native `fetch` API.
+The CLI core relies on Node.js built-ins and the native `fetch` API. GolDid
+additionally uses Electron for the desktop app and `marked` + `dompurify` to
+render Markdown responses (Markdown in the terminal is rendered by the built-in
+`lib/markdown.js`).
 
 ## Updating
 

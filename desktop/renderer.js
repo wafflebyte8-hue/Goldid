@@ -7,18 +7,25 @@ let visibleCommands = [];
 const $ = (id) => document.getElementById(id);
 const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
+if (window.marked) {
+  // Render code fences as our styled blocks; keep the language label.
+  const renderer = new window.marked.Renderer();
+  renderer.code = ({ text, lang }) => {
+    const language = /^[A-Za-z0-9_+#.-]{1,24}$/.test(lang || '') ? lang : '';
+    const label = language ? `<div class="code-label">${escapeHtml(language)}</div>` : '';
+    return `<div class="code-block">${label}<pre><code>${escapeHtml(text)}</code></pre></div>`;
+  };
+  window.marked.setOptions({ renderer, gfm: true, breaks: true });
+}
+
 function renderMessageContent(value) {
   const text = String(value ?? '').replace(/\r\n/g, '\n');
-  const parts = text.split(/```/);
-  return parts.map((part, index) => {
-    if (index % 2 === 0) return `<span class="message-text">${escapeHtml(part)}</span>`;
-    const newline = part.indexOf('\n');
-    const firstLine = newline >= 0 ? part.slice(0, newline).trim() : '';
-    const hasLanguage = /^[A-Za-z0-9_+#.-]{1,24}$/.test(firstLine);
-    const language = hasLanguage ? firstLine : '';
-    const code = newline >= 0 && hasLanguage ? part.slice(newline + 1) : part;
-    return `<div class="code-block">${language ? `<div class="code-label">${escapeHtml(language)}</div>` : ''}<pre><code>${escapeHtml(code.replace(/\n$/, ''))}</code></pre></div>`;
-  }).join('');
+  if (!window.marked || !window.DOMPurify) {
+    // Defensive fallback if the markdown libraries failed to load.
+    return `<span class="message-text">${escapeHtml(text)}</span>`;
+  }
+  const html = window.marked.parse(text);
+  return `<div class="message-text">${window.DOMPurify.sanitize(html)}</div>`;
 }
 
 function renderStatus() {

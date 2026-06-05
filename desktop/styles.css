@@ -84,8 +84,25 @@ button img { width: 18px; height: 18px; display: block; pointer-events: none; }
 .avatar { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 5px; background: var(--panel-2); color: var(--muted); font-weight: 700; }
 .message.assistant .avatar { background: var(--gold); color: #17130a; }
 .message-body { min-width: 0; line-height: 1.65; overflow-wrap: anywhere; }
-.message-body strong { display: block; font-size: 13px; margin-bottom: 5px; color: var(--muted); }
-.message-text { white-space: pre-wrap; }
+.message-body > strong { display: block; font-size: 13px; margin-bottom: 5px; color: var(--muted); }
+.message-text > :first-child { margin-top: 0; }
+.message-text > :last-child { margin-bottom: 0; }
+.message-text p { margin: 0 0 10px; }
+.message-text h1, .message-text h2, .message-text h3,
+.message-text h4, .message-text h5, .message-text h6 { margin: 16px 0 8px; line-height: 1.3; color: #f1ecdd; }
+.message-text h1 { font-size: 20px; } .message-text h2 { font-size: 18px; } .message-text h3 { font-size: 16px; }
+.message-text h4, .message-text h5, .message-text h6 { font-size: 14px; }
+.message-text ul, .message-text ol { margin: 8px 0; padding-left: 22px; }
+.message-text li { margin: 3px 0; }
+.message-text li > p { margin: 0; }
+.message-text a { color: var(--gold-strong); text-decoration: underline; }
+.message-text blockquote { margin: 10px 0; padding: 2px 14px; border-left: 3px solid #444235; color: var(--muted); }
+.message-text hr { border: none; border-top: 1px solid #343328; margin: 16px 0; }
+.message-text code { background: #1b1b15; color: #e6dfcb; font-family: Consolas, "Cascadia Code", monospace; font-size: 0.9em; padding: 1px 5px; border-radius: 4px; }
+.message-text :is(h1,h2,h3) code, .message-text pre code { background: none; padding: 0; }
+.message-text table { border-collapse: collapse; margin: 10px 0; display: block; overflow-x: auto; }
+.message-text th, .message-text td { border: 1px solid #444235; padding: 6px 10px; text-align: left; }
+.message-text th { background: #191914; }
 .code-block { max-width: 100%; margin: 12px 0; overflow: hidden; border: 1px solid #444235; border-radius: 6px; background: #0d0d0b; }
 .code-label { padding: 7px 12px; border-bottom: 1px solid #343328; background: #191914; color: var(--muted); font-family: Consolas, "Cascadia Code", monospace; font-size: 11px; text-transform: lowercase; }
 .code-block pre { max-width: 100%; margin: 0; overflow: auto; padding: 14px; }

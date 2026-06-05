@@ -12,7 +12,9 @@
     "desktop": "electron desktop/main.js"
   },
   "dependencies": {
-    "electron": "^36.5.0"
+    "dompurify": "^3.4.8",
+    "electron": "^36.5.0",
+    "marked": "^18.0.5"
   },
   "license": "MIT"
 }
