@@ -73,38 +73,40 @@ gd "write a haiku about terminals"
 
 ## Providers
 
-| Provider | Type | Configuration |
-|---|---|---|
-| Anthropic | Cloud | API key |
-| OpenAI | Cloud | API key |
-| Google Gemini | Cloud | API key |
-| xAI | Cloud | API key |
-| DeepSeek | Cloud | API key |
-| OpenRouter | Cloud | API key |
-| Ollama | Local | `http://localhost:11434` by default |
-| vLLM | Local | `http://localhost:8000` by default |
-| LM Studio | Local | `http://localhost:1234` by default |
+| Provider      | Type  | Configuration                       |
+| ------------- | ----- | ----------------------------------- |
+| Anthropic     | Cloud | API key                             |
+| OpenAI        | Cloud | API key                             |
+| Google Gemini | Cloud | API key                             |
+| xAI           | Cloud | API key                             |
+| DeepSeek      | Cloud | API key                             |
+| OpenRouter    | Cloud | API key                             |
+| Ollama        | Local | `http://localhost:11434` by default |
+| vLLM          | Local | `http://localhost:8000` by default  |
+| LM Studio     | Local | `http://localhost:1234` by default  |
 
 Local model lists are fetched directly from the running server, so GolDid
 shows the models you actually have available.
+
+<sub>Your API keys are encrypted as soon as you enter them.</sub>
 
 ## Tools and approval
 
 GolDid can give the selected model access to a small set of tools:
 
-| Tool | Needs approval | Purpose |
-|---|---:|---|
-| `time` | No | Get the current date and time |
-| `cwd` | No | Show the working directory |
-| `memory` | No | Read or update persistent memory |
-| `list_dir` | No | List directory contents |
-| `read_file` | No | Read a text file |
-| `file_info` | No | Inspect file metadata |
-| `find_files` | No | Find files recursively |
-| `search_text` | No | Search inside text files |
-| `web_search` | No | Search the web |
-| `write_file` | Yes | Create or overwrite a file |
-| `shell` | Yes | Run a shell command |
+| Tool          | Needs approval | Purpose                          |
+| ------------- | -------------: | -------------------------------- |
+| `time`        |             No | Get the current date and time    |
+| `cwd`         |             No | Show the working directory       |
+| `memory`      |             No | Read or update persistent memory |
+| `list_dir`    |             No | List directory contents          |
+| `read_file`   |             No | Read a text file                 |
+| `file_info`   |             No | Inspect file metadata            |
+| `find_files`  |             No | Find files recursively           |
+| `search_text` |             No | Search inside text files         |
+| `web_search`  |             No | Search the web                   |
+| `write_file`  |            Yes | Create or overwrite a file       |
+| `shell`       |            Yes | Run a shell command              |
 
 `write_file` and `shell` do not run silently. GolDid shows the request and asks
 you to approve it first. You can turn all agent tools off with:
@@ -258,17 +260,14 @@ Version.js
 For a native GolDid skill, `Version.js` contains normalized metadata:
 
 ```javascript
-'use strict';
+"use strict";
 
 module.exports = {
-  "Author": "Skill author",
-  "Name": "release-check",
-  "Description": "Verify a project before publishing a release.",
-  "Usage": "Use before creating or publishing a release.",
-  "Model_tested": [
-    "gpt-5",
-    "claude-sonnet"
-  ]
+  Author: "Skill author",
+  Name: "release-check",
+  Description: "Verify a project before publishing a release.",
+  Usage: "Use before creating or publishing a release.",
+  Model_tested: ["gpt-5", "claude-sonnet"],
 };
 ```
 
@@ -284,14 +283,14 @@ For migrated Hermes and OpenClaw skills, GolDid does not claim metadata that
 was not authored specifically for GolDid. Their generated file is:
 
 ```javascript
-'use strict';
+"use strict";
 
 module.exports = {
-  "Author": "Unknown",
-  "Name": "Unknown",
-  "Description": "Unknown",
-  "Usage": "Unknown",
-  "Model_tested": "Unknown"
+  Author: "Unknown",
+  Name: "Unknown",
+  Description: "Unknown",
+  Usage: "Unknown",
+  Model_tested: "Unknown",
 };
 ```
 
@@ -366,34 +365,34 @@ Do not upload either file.
 
 ## Commands
 
-| Command | What it does |
-|---|---|
-| `/setup [provider]` | Configure a provider and model |
-| `/use <provider>` | Switch provider |
-| `/model [name]` | Show or change the active model |
-| `/models [provider]` | Fetch available models |
-| `/providers` | Show provider status |
-| `/key <provider> [key]` | Set an API key |
-| `/url <provider> [url]` | Set a provider URL |
-| `/agent [on\|off]` | Enable or disable tools |
-| `/tools` | List available tools |
-| `/soul` | Show the personality file |
-| `/memory` | Inspect or edit memory |
-| `/sessions [query]` | List or search saved conversations |
-| `/session [name]` | Show or name the current session |
-| `/resume <id>` | Resume a saved conversation |
-| `/delete-session <id>` | Delete a saved conversation |
-| `/skills` | List compatible installed skills |
-| `/skill <name>` | Inspect a skill's full instructions |
-| `/migrate [source]` | Import Hermes/OpenClaw data |
-| `/remember [target] <text>` | Add a memory |
-| `/forget [target] <text>` | Remove a memory |
-| `/config` | Show current configuration |
-| `/reset` | Start a fresh conversation |
-| `/clear` | Clear the terminal |
-| `/version` | Show the version |
-| `/help` | Show command help |
-| `/exit` | Quit |
+| Command                     | What it does                        |
+| --------------------------- | ----------------------------------- |
+| `/setup [provider]`         | Configure a provider and model      |
+| `/use <provider>`           | Switch provider                     |
+| `/model [name]`             | Show or change the active model     |
+| `/models [provider]`        | Fetch available models              |
+| `/providers`                | Show provider status                |
+| `/key <provider> [key]`     | Set an API key                      |
+| `/url <provider> [url]`     | Set a provider URL                  |
+| `/agent [on\|off]`          | Enable or disable tools             |
+| `/tools`                    | List available tools                |
+| `/soul`                     | Show the personality file           |
+| `/memory`                   | Inspect or edit memory              |
+| `/sessions [query]`         | List or search saved conversations  |
+| `/session [name]`           | Show or name the current session    |
+| `/resume <id>`              | Resume a saved conversation         |
+| `/delete-session <id>`      | Delete a saved conversation         |
+| `/skills`                   | List compatible installed skills    |
+| `/skill <name>`             | Inspect a skill's full instructions |
+| `/migrate [source]`         | Import Hermes/OpenClaw data         |
+| `/remember [target] <text>` | Add a memory                        |
+| `/forget [target] <text>`   | Remove a memory                     |
+| `/config`                   | Show current configuration          |
+| `/reset`                    | Start a fresh conversation          |
+| `/clear`                    | Clear the terminal                  |
+| `/version`                  | Show the version                    |
+| `/help`                     | Show command help                   |
+| `/exit`                     | Quit                                |
 
 ## Project layout
 
