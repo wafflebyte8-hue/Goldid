@@ -190,6 +190,7 @@ AgentSkills standard. A skill is a directory containing `SKILL.md` (lowercase
 ```text
 my-skill/
   SKILL.md
+  Version.js     GolDid normalized metadata
   scripts/       optional
   references/    optional
   templates/     optional
@@ -244,6 +245,59 @@ Use:
 Third-party skills are instructions, not trusted code. Read them before use.
 GolDid does not execute Hermes inline-shell expressions automatically. Any
 commands requested by a skill still go through the normal `shell` approval.
+
+### GolDid skill metadata
+
+Every GolDid skill uses this two-file base:
+
+```text
+SKILL.md
+Version.js
+```
+
+For a native GolDid skill, `Version.js` contains normalized metadata:
+
+```javascript
+'use strict';
+
+module.exports = {
+  "Author": "Skill author",
+  "Name": "release-check",
+  "Description": "Verify a project before publishing a release.",
+  "Usage": "Use before creating or publishing a release.",
+  "Model_tested": [
+    "gpt-5",
+    "claude-sonnet"
+  ]
+};
+```
+
+The native fields are:
+
+- `Author`: original frontmatter author, or the import source when absent
+- `Name`: normalized skill name
+- `Description`: short catalog description
+- `Usage`: imported from `usage`, `## Usage`, or `## When to Use`
+- `Model_tested`: models declared by the skill author; empty when unknown
+
+For migrated Hermes and OpenClaw skills, GolDid does not claim metadata that
+was not authored specifically for GolDid. Their generated file is:
+
+```javascript
+'use strict';
+
+module.exports = {
+  "Author": "Unknown",
+  "Name": "Unknown",
+  "Description": "Unknown",
+  "Usage": "Unknown",
+  "Model_tested": "Unknown"
+};
+```
+
+The original `SKILL.md` remains unchanged and is still used to discover and run
+the imported skill. GolDid parses `Version.js` as JSON data inside a CommonJS
+export and never executes it.
 
 ## Migrating from Hermes and OpenClaw
 

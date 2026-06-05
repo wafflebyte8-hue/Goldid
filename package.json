@@ -1,6 +1,6 @@
 {
   "name": "goldid",
-  "version": "0.9.0",
+  "version": "0.10.0",
   "description": "A chat-first agentic CLI with tools, memory, sessions, portable skills, and Hermes/OpenClaw migration.",
   "bin": {
     "goldid": "goldid.js",

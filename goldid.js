@@ -24,7 +24,7 @@ const projectContext = require('./lib/context');
 const skills = require('./lib/skills');
 const migrate = require('./lib/migrate');
 
-const VERSION = '0.9.0';
+const VERSION = '0.10.0';
 const MAX_AGENT_STEPS = 6;
 const TOOL_TAG = '<tool_call>';
 
@@ -742,7 +742,10 @@ function showSkill(args, ctx) {
   ui.panel(
     [
       ui.kv('name', ui.gold(skill.name)),
+      ui.kv('author', ui.dim(skill.author || 'Unknown')),
       ui.kv('source', ui.dim(skill.source)),
+      ui.kv('usage', ui.dim(ui.clip(skill.usage || 'Not specified', 88))),
+      ui.kv('models tested', ui.dim(skill.modelTested.length ? skill.modelTested.join(', ') : 'Not specified')),
       ui.kv('file', ui.dim(ui.clip(skill.file, 88))),
       '',
       skills.render(skill, ctx.sessionId),
