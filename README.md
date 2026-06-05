@@ -61,6 +61,8 @@ gd "write a haiku about terminals"
 - Stream responses as they are generated
 - Talk to local and cloud models
 - Remember small, durable details between conversations
+- Save, search, and resume previous conversations
+- Load project-specific instructions from `GOLDID.md` or `AGENTS.md`
 - Read and search files
 - Search the web
 - Run approved shell commands
@@ -126,6 +128,8 @@ GolDid keeps personal data outside the repository:
     MEMORY.md
     USER.md
     PERSONALITY.md
+  sessions/
+    <session-id>.json
 ```
 
 - `SOUL.md` controls GolDid's general voice and identity.
@@ -135,6 +139,45 @@ GolDid keeps personal data outside the repository:
 
 You can inspect or edit memory with `/memory`, `/remember`, and `/forget`.
 These files are local and are not part of this Git repository.
+
+## Saved sessions
+
+Conversations are automatically saved under `~/.goldid/sessions/` after each
+completed turn. This makes it possible to leave a conversation and continue it
+later:
+
+```text
+/sessions
+/sessions authentication
+/resume <session-id>
+```
+
+Use `/session my-project` to give the current conversation a memorable ID.
+`/reset` starts a new conversation with a new session ID.
+
+Session files contain your chat messages and tool results. Keep the
+`~/.goldid/sessions` directory private and review it before sharing diagnostics.
+
+## Project instructions
+
+GolDid looks for a project context file before each model turn:
+
+1. `GOLDID.md`
+2. `AGENTS.md`
+
+It starts in the current working directory and walks upward until it finds one.
+Use this file for repository conventions, useful commands, architecture notes,
+or instructions that should apply whenever GolDid works in that project.
+
+Example `GOLDID.md`:
+
+```markdown
+# Project instructions
+
+- Run `npm test` before reporting that a change is complete.
+- Keep public APIs backward compatible.
+- Do not edit generated files under `dist/`.
+```
 
 ## API key security
 
@@ -161,6 +204,10 @@ Do not upload either file.
 | `/tools` | List available tools |
 | `/soul` | Show the personality file |
 | `/memory` | Inspect or edit memory |
+| `/sessions [query]` | List or search saved conversations |
+| `/session [name]` | Show or name the current session |
+| `/resume <id>` | Resume a saved conversation |
+| `/delete-session <id>` | Delete a saved conversation |
 | `/remember [target] <text>` | Add a memory |
 | `/forget [target] <text>` | Remove a memory |
 | `/config` | Show current configuration |
@@ -181,6 +228,8 @@ GolDid/
     memory.js      Persistent memory
     prompt.js      System prompt construction
     providers.js   Provider APIs and streaming
+    sessions.js    Saved conversation storage and search
+    context.js     Project instruction discovery
     tools.js       Agent tools
     ui.js          Terminal interface
   package.json

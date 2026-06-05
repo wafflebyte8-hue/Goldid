@@ -19,8 +19,10 @@ const ui = require('./lib/ui');
 const prompt = require('./lib/prompt');
 const tools = require('./lib/tools');
 const memory = require('./lib/memory');
+const sessions = require('./lib/sessions');
+const projectContext = require('./lib/context');
 
-const VERSION = '0.6.0';
+const VERSION = '0.7.0';
 const MAX_AGENT_STEPS = 6;
 const TOOL_TAG = '<tool_call>';
 
@@ -120,6 +122,7 @@ function commandRows() {
     `${ui.gold('/providers')}  ${ui.dim('inspect configured backends')}`,
     `${ui.gold('/tools')}      ${ui.dim('show agent capabilities')}`,
     `${ui.gold('/memory')}     ${ui.dim('view persistent memory')}`,
+    `${ui.gold('/sessions')}   ${ui.dim('find or resume past chats')}`,
     `${ui.gold('/model')}      ${ui.dim('switch or inspect model')}`,
     `${ui.gold('/help')}       ${ui.dim('command reference')}`,
     `${ui.gold('/exit')}       ${ui.dim('quit')}`,
@@ -371,6 +374,7 @@ async function handleChat(text, conversation, ctx) {
     model: cfg.active.model,
     cwd: process.cwd(),
     memorySnapshot,
+    projectContext: projectContext.format(process.cwd()),
   });
 
   conversation.push({ role: 'user', content: text });
@@ -416,6 +420,13 @@ async function handleChat(text, conversation, ctx) {
       content: `<tool_result name="${call.name}">\n${result}\n</tool_result>`,
     });
     if (last) console.log(ui.dim('(reached the tool-call limit for this turn)'));
+  }
+  if (ctx.sessionId && conversation.length) {
+    try {
+      sessions.save(ctx.sessionId, conversation, { cwd: process.cwd() });
+    } catch (e) {
+      ui.warning('Could not save session: ' + e.message);
+    }
   }
   console.log('');
 }
@@ -630,8 +641,70 @@ function memoryCmd(args, ctx) {
 
 function resetConversation(ctx, convo) {
   convo.length = 0;
+  ctx.sessionId = sessions.newId();
   loadConversationMemory(ctx);
-  ui.success('Started a new conversation and reloaded persistent memory.');
+  ui.success(`Started session ${ctx.sessionId} and reloaded persistent memory.`);
+}
+
+function showSessions(args) {
+  const query = args.join(' ').trim();
+  const items = sessions.search(query).slice(0, 20);
+  const rows = items.map((item) => [
+    ui.gold(item.id),
+    ui.dim(String(item.messageCount)),
+    ui.dim(item.updatedAt ? item.updatedAt.slice(0, 16).replace('T', ' ') : ''),
+    ui.clip(item.title, 54),
+  ]);
+  ui.panel(
+    [
+      ui.kv('directory', ui.dim(ui.clip(sessions.SESSION_DIR, 78))),
+      query ? ui.kv('search', ui.gold(query)) : ui.dim('Most recent sessions'),
+      '',
+      ...(rows.length
+        ? ui.table([[ui.dim('id'), ui.dim('msgs'), ui.dim('updated'), ui.dim('title')], ...rows])
+        : [ui.dim('  (no matching sessions)')]),
+      '',
+      ui.dim('resume: ') + ui.amber('/resume <session-id>'),
+    ],
+    { title: ui.gold('Sessions'), maxWidth: 120 }
+  );
+  console.log('');
+}
+
+function sessionCmd(args, ctx, conversation) {
+  const requested = args.join('-').trim();
+  if (requested) {
+    const saved = sessions.save(requested, conversation, { cwd: process.cwd() });
+    ctx.sessionId = saved.id;
+    return ui.success(`Current conversation saved as ${saved.id}.`);
+  }
+  ui.info(`Current session: ${ctx.sessionId}`);
+}
+
+function resumeSession(args, ctx, conversation) {
+  const id = args[0];
+  if (!id) return ui.warning('Usage: /resume <session-id>');
+  try {
+    const saved = sessions.load(id);
+    conversation.splice(0, conversation.length, ...saved.messages);
+    ctx.sessionId = saved.id;
+    loadConversationMemory(ctx);
+    ui.success(`Resumed ${saved.id}: ${saved.title}`);
+  } catch (e) {
+    ui.error('Could not resume session: ' + e.message);
+  }
+}
+
+function deleteSession(args, ctx) {
+  const id = args[0];
+  if (!id) return ui.warning('Usage: /delete-session <session-id>');
+  if (id === ctx.sessionId) return ui.warning('Start /reset before deleting the active session.');
+  try {
+    if (sessions.remove(id)) ui.success(`Deleted session ${id}.`);
+    else ui.warning(`Session not found: ${id}`);
+  } catch (e) {
+    ui.error('Could not delete session: ' + e.message);
+  }
 }
 
 function agentCmd(args) {
@@ -673,6 +746,10 @@ function printHelp() {
     ['/tools', 'list the agent tools'],
     ['/soul', 'show/locate the SOUL.md personality file'],
     ['/memory', 'show or edit persistent memory'],
+    ['/sessions [query]', 'list or search saved conversations'],
+    ['/session [name]', 'show or name the current session'],
+    ['/resume <id>', 'resume a saved conversation'],
+    ['/delete-session <id>', 'delete a saved conversation'],
     ['/remember [target] <text>', 'save memory/user/personality'],
     ['/forget [target] <text>', 'remove a memory entry'],
     ['/config', 'show current configuration'],
@@ -721,6 +798,10 @@ const slash = {
   tools: { run: () => toolsCmd() },
   soul: { run: () => soulCmd() },
   memory: { run: (args, ctx) => memoryCmd(args, ctx) },
+  sessions: { run: (args) => showSessions(args) },
+  session: { run: (args, ctx, convo) => sessionCmd(args, ctx, convo) },
+  resume: { run: (args, ctx, convo) => resumeSession(args, ctx, convo) },
+  'delete-session': { run: (args, ctx) => deleteSession(args, ctx) },
   remember: { run: (args, ctx) => rememberCmd(args, ctx) },
   forget: { run: (args, ctx) => forgetCmd(args, ctx) },
   config: { run: () => showConfig() },
@@ -876,6 +957,7 @@ function repl(ctx) {
       }
 
       const conversation = [];
+      ctx.sessionId ||= sessions.newId();
       loadConversationMemory(ctx);
       const { rl } = ctx;
       promptIdle();
@@ -913,6 +995,7 @@ function repl(ctx) {
 const UTILITY = new Set([
   'setup', 'use', 'model', 'models', 'providers', 'key', 'url',
   'agent', 'tools', 'soul', 'memory', 'remember', 'forget', 'config',
+  'sessions', 'session', 'resume', 'delete-session',
   'reset', 'clear', 'version', 'help', 'exit', 'quit',
 ]);
 
@@ -930,7 +1013,11 @@ async function main() {
   prompt.ensureSoul();
   memory.ensureFiles();
   const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-  const ctx = { rl, ask: (q) => new Promise((res) => rl.question(q, res)) };
+  const ctx = {
+    rl,
+    ask: (q) => new Promise((res) => rl.question(q, res)),
+    sessionId: sessions.newId(),
+  };
   const argv = process.argv.slice(2);
   if (argv.length === 0) {
     await repl(ctx);
