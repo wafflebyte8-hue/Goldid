@@ -1,6 +1,6 @@
 'use strict';
 
-const state = { snapshot: null, messages: [], sessionId: null, activeTab: 'sessions', requestId: null, streamingNode: null, toolEvents: new Map() };
+const state = { snapshot: null, messages: [], sessionId: null, activeTab: 'sessions', requestId: null, streamingNode: null, toolEvents: new Map(), skillRegistry: null };
 let sessionPendingDelete = null;
 let commandIndex = 0;
 let visibleCommands = [];
@@ -283,15 +283,52 @@ function renderSidebar() {
       $('deleteDialog').showModal();
     }));
   } else if (state.activeTab === 'skills') {
-    root.innerHTML = '<div class="section-label">Available skills</div>' + state.snapshot.skills.map((item, index) =>
+    const installedIds = new Set(state.snapshot.skills.map((item) => item.name.toLowerCase()));
+    const marketplace = state.skillRegistry?.skills || [];
+    root.innerHTML = '<div class="section-label">Installed skills</div>' + (state.snapshot.skills.map((item, index) =>
       `<button class="list-item" style="--item-index:${index}" data-skill="${escapeHtml(item.name)}"><strong>${escapeHtml(item.name)}</strong><small>${escapeHtml(item.description)}</small></button>`
-    ).join('') || '<p class="section-label">No compatible skills found</p>';
+    ).join('') || '<p class="section-label">No compatible skills found</p>') +
+    '<div class="section-label">Skill marketplace</div>' +
+    (marketplace.length ? marketplace.map((item, index) => {
+      const installed = installedIds.has(item.name.toLowerCase()) || installedIds.has(item.id.toLowerCase());
+      return `<div class="market-skill" style="--item-index:${index}"><button class="list-item" data-market-skill="${escapeHtml(item.id)}"><strong>${escapeHtml(item.name)}</strong><small>${escapeHtml(item.description)}</small></button><button class="install-skill" data-install-skill="${escapeHtml(item.id)}" ${installed ? 'disabled' : ''}>${installed ? 'Installed' : 'Install'}</button></div>`;
+    }).join('') : '<p class="section-label">Loading marketplace...</p>');
     root.querySelectorAll('[data-skill]').forEach((button) => button.addEventListener('click', () => showSkill(button.dataset.skill)));
+    root.querySelectorAll('[data-market-skill]').forEach((button) => button.addEventListener('click', () => openSkillPage(button.dataset.marketSkill)));
+    root.querySelectorAll('[data-install-skill]').forEach((button) => button.addEventListener('click', () => installSkill(button.dataset.installSkill)));
+    if (!state.skillRegistry) loadSkillRegistry();
   } else {
     root.innerHTML = '<div class="section-label">Persistent memory</div>' + Object.values(state.snapshot.memory).map((item, index) =>
       `<button class="list-item" style="--item-index:${index}" data-memory="${escapeHtml(item.target)}"><strong>${escapeHtml(item.target)}</strong><small>${item.entry_count} entries · ${escapeHtml(item.usage)}</small></button>`
     ).join('');
     root.querySelectorAll('[data-memory]').forEach((button) => button.addEventListener('click', () => showMemory(button.dataset.memory)));
+  }
+}
+
+async function loadSkillRegistry() {
+  try {
+    state.skillRegistry = await window.goldid.skillRegistry();
+  } catch (error) {
+    state.skillRegistry = { skills: [{ id: 'error', name: 'Marketplace unavailable', description: error.message || String(error) }] };
+  }
+  if (state.activeTab === 'skills') renderSidebar();
+}
+
+function openSkillPage(id) {
+  const base = state.skillRegistry?.baseUrl || 'https://goldid-e56e5.web.app';
+  window.goldid.openPath(`${base}/skills/${encodeURIComponent(id)}/`);
+}
+
+async function installSkill(id) {
+  try {
+    showNotice(`Installing skill ${id}...`);
+    const result = await window.goldid.installSkill(id);
+    $('detailContent').textContent = `Installed ${result.name}\n\n${result.dir}`;
+    await refresh();
+    state.skillRegistry = null;
+    await loadSkillRegistry();
+  } catch (error) {
+    showNotice(error.message || String(error));
   }
 }
 

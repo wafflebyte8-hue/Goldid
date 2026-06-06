@@ -11,7 +11,7 @@ sandboxing, and TPM-backed protection of your API keys.
 This document describes **everything** about GolDid in detail: architecture,
 every module, every command, every tool, the prompt system, the security model,
 the on-disk layout, and the desktop app. It reflects the current code
-(version `0.13.3`).
+(version `0.15.2`).
 
 ---
 
@@ -179,6 +179,8 @@ as a prompt.
 ```text
 GolDid/
   goldid.js          CLI entry: REPL, chat loop, slash commands, setup wizard
+  firebase.json      Firebase Hosting config for the static website
+  public/            Static website assets
   desktop/           Electron desktop application
     main.js          Electron main process: window, IPC handlers, agent loop
     preload.js       contextBridge: the window.goldid API surface
@@ -761,6 +763,8 @@ idempotently creates, under `~/.goldid/skills`:
 
 - `/skills` — list compatible installed skills.
 - `/skill <name>` — inspect one skill's full instructions.
+- `/skill install <id>` — install a public skill from the hosted GolDid registry.
+- `gd skill install <id>` — one-shot form of the same installer.
 - The model uses `skills_list` / `skill_view` tools at runtime.
 
 The catalog placed in the prompt contains only names + descriptions to keep the
@@ -829,7 +833,7 @@ subcommands.
 | `/resume <id>`                 | Resume a saved conversation.                       |
 | `/delete-session <id>`         | Delete a saved conversation.                       |
 | `/skills`                      | List compatible installed skills.                  |
-| `/skill <name>`                | Inspect one skill.                                 |
+| `/skill <name\|install id>`    | Inspect or install one skill.                      |
 | `/migrate [source]`            | Import Hermes/OpenClaw data.                       |
 | `/remember [target] <text>`    | Save to memory/user/personality.                   |
 | `/forget [target] <text>`      | Remove a memory entry.                             |
@@ -960,5 +964,5 @@ Keep `~/.goldid/sessions` private (it contains chat messages and tool results).
 
 ---
 
-_This documentation reflects GolDid `0.13.3`. Behavior described here is taken
+_This documentation reflects GolDid `0.15.2`. Behavior described here is taken
 from the source under `goldid.js`, `lib/`, and `desktop/`._

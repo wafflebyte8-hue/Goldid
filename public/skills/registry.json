@@ -1,0 +1,16 @@
+{
+  "baseUrl": "https://goldid-e56e5.web.app",
+  "skills": [
+    {
+      "id": "1929",
+      "name": "Project Maintainer",
+      "description": "Review a repository, summarize risks, propose fixes, and keep release notes tidy.",
+      "author": "GolDid",
+      "version": "1.0.0",
+      "tags": ["code-review", "maintenance", "release-notes"],
+      "pageUrl": "/skills/1929/",
+      "skillUrl": "/skills/1929/SKILL.md",
+      "versionUrl": "/skills/1929/Version.md"
+    }
+  ]
+}

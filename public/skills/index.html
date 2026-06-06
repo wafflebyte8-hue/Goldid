@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Browse GolDid community skills and install them in the CLI or desktop app.">
+  <title>GolDid Skills</title>
+  <link rel="icon" href="../assets/goldid-logo.png">
+  <link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="../"><img src="../assets/goldid-logo.png" alt=""><span>GolDid</span></a>
+    <nav aria-label="Skills navigation">
+      <a href="../">Home</a>
+      <a href="./upload/">Upload</a>
+      <a href="./registry.json">Registry</a>
+    </nav>
+  </header>
+  <main>
+    <section class="skill-hero">
+      <p class="eyebrow">Skill marketplace</p>
+      <h1>Skills</h1>
+      <p class="lead">Browse public GolDid skills. Open a skill page to inspect its files, then install it with `gd skill install <id>`, `/skill install <id>`, or the desktop Skills explorer.</p>
+      <div id="skillList" class="skills-grid registry-list" aria-live="polite"></div>
+    </section>
+  </main>
+  <script>
+    const root = document.getElementById('skillList');
+    const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+    fetch('/skills/registry.json', { cache: 'no-store' })
+      .then((res) => res.json())
+      .then((registry) => {
+        const skills = Array.isArray(registry.skills) ? registry.skills : [];
+        root.innerHTML = skills.map((skill) => `
+          <article class="skill-card">
+            <div>
+              <p class="skill-meta">Skill ${escapeHtml(skill.id)}</p>
+              <h3>${escapeHtml(skill.name)}</h3>
+              <p>${escapeHtml(skill.description)}</p>
+            </div>
+            <a class="download-link" href="/skills/${encodeURIComponent(skill.id)}/">View skill</a>
+          </article>
+        `).join('') || '<p>No skills published yet.</p>';
+      })
+      .catch((error) => {
+        root.innerHTML = `<p>Could not load registry: ${escapeHtml(error.message)}</p>`;
+      });
+  </script>
+</body>
+</html>

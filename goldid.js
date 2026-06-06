@@ -29,7 +29,7 @@ const skills = require('./lib/skills');
 const migrate = require('./lib/migrate');
 const updater = require('./lib/updater');
 
-const VERSION = '0.13.3';
+const VERSION = '0.15.2';
 const TOOL_TAG = '<tool_call>';
 
 const toolsEnabled = (cfg) => cfg.agent?.tools !== false; // default on
@@ -788,6 +788,7 @@ function showSkills() {
         : [ui.dim('  (no compatible skills found)')]),
       '',
       ui.dim('view: ') + ui.amber('/skill <name>'),
+      ui.dim('install: ') + ui.amber('/skill install <id>'),
       ui.dim('native directory: ') + ui.gold(skills.defaultRoots(process.cwd())[3].path),
     ],
     { title: ui.gold('Skills'), maxWidth: 124 }
@@ -795,7 +796,19 @@ function showSkills() {
   console.log('');
 }
 
-function showSkill(args, ctx) {
+async function showSkill(args, ctx) {
+  if ((args[0] || '').toLowerCase() === 'install') {
+    const id = args[1];
+    if (!id) return ui.warning('Usage: /skill install <id>');
+    try {
+      ui.info(`Installing skill ${id}...`);
+      const result = await skills.installFromRegistry(id);
+      ui.success(`Installed ${result.name} to ${result.dir}`);
+    } catch (error) {
+      ui.error(error.message || String(error));
+    }
+    return;
+  }
   const name = args.join(' ').trim();
   if (!name) return ui.warning('Usage: /skill <name>');
   const skill = skills.find(name, process.cwd());
@@ -1143,7 +1156,7 @@ function printHelp() {
     ['/resume <id>', 'resume a saved conversation'],
     ['/delete-session <id>', 'delete a saved conversation'],
     ['/skills', 'list compatible installed skills'],
-    ['/skill <name>', 'inspect one skill'],
+    ['/skill <name|install id>', 'inspect or install one skill'],
     ['/migrate [source]', 'import Hermes/OpenClaw data'],
     ['/remember [target] <text>', 'save memory/user/personality'],
     ['/forget [target] <text>', 'remove a memory entry'],

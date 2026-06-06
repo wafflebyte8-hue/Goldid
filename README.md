@@ -386,6 +386,8 @@ use:
 ```text
 /skills
 /skill release-check
+/skill install 1929
+gd skill install 1929
 ```
 
 third-party skills are instructions, NOT trusted code. read them before you use
@@ -563,7 +565,7 @@ keys. never upload `config.json`, `key.bin`, or `key.tpm`.
 | `/resume <id>`                 | Resume a saved conversation                |
 | `/delete-session <id>`         | Delete a saved conversation                |
 | `/skills`                      | List compatible installed skills           |
-| `/skill <name>`                | Inspect a skill's full instructions        |
+| `/skill <name\|install id>`    | Inspect or install a skill                 |
 | `/migrate [source]`            | Import Hermes/OpenClaw data                |
 | `/remember [target] <text>`    | Add a memory                               |
 | `/forget [target] <text>`      | Remove a memory                            |
@@ -578,6 +580,7 @@ keys. never upload `config.json`, `key.bin`, or `key.tpm`.
 
 ```text
 GolDid/
+  firebase.json    Firebase Hosting config for the static website
   setup.ps1        Windows installer and updater
   setup.sh         Linux/macOS installer and updater
   uninstall.ps1    Windows uninstaller
@@ -586,6 +589,7 @@ GolDid/
   goldid.js        CLI, chat loop, commands, and setup wizard
   desktop/         Electron desktop application
     assets/        GolDid app logo
+  public/          Static website ready for Firebase Hosting
   lib/
     config.js      Encrypted configuration storage
     keystore.js    Master-key protection (TPM 2.0 / machine-bound / plaintext)
@@ -603,6 +607,20 @@ GolDid/
     markdown.js    Markdown to ANSI rendering for the terminal
   package.json
 ```
+
+## Website deploy
+
+The static site lives in `public/` and is configured for Firebase Hosting.
+
+```bash
+firebase login
+firebase use <your-project-id>
+firebase deploy --only hosting
+```
+
+If you have the Blaze plan enabled, Hosting deploy still works the same way; the
+plan mainly matters for usage limits and other Firebase services you may add
+later.
 
 the CLI core only needs Node.js built-ins + native `fetch`. the desktop app adds
 Electron and uses `marked` + `dompurify` to render Markdown (the terminal renders

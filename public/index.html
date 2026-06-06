@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="GolDid is a chat-first AI assistant for terminal and desktop, with local/cloud models, tools, memory, sessions, skills, updates, sandboxing, and TPM-backed key protection.">
+  <title>GolDid - Terminal and Desktop AI Assistant</title>
+  <link rel="icon" href="assets/goldid-logo.png">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="#top" aria-label="GolDid home">
+      <img src="assets/goldid-logo.png" alt="">
+      <span>GolDid</span>
+    </a>
+    <nav aria-label="Main navigation">
+      <a href="#install">Install</a>
+      <a href="#features">Features</a>
+      <a href="skills/">Skills</a>
+      <a href="#desktop">Desktop</a>
+      <a href="#security">Security</a>
+    </nav>
+  </header>
+
+  <main id="top">
+    <section class="hero">
+      <div class="hero-media" aria-hidden="true">
+        <img src="assets/goldid-logo.png" alt="">
+      </div>
+      <div class="hero-copy">
+        <p class="eyebrow">Terminal-first. Desktop-ready. Local or cloud.</p>
+        <h1>GolDid</h1>
+        <p class="lead">A chat-first AI assistant for developers who want one `gd` command, saved sessions, portable skills, file tools, web search, image generation, sandboxing, and protected API keys.</p>
+        <div class="hero-actions">
+          <a class="button primary" href="#install">Install GolDid</a>
+          <a class="button secondary" href="https://github.com/wafflebyte8-hue/Goldid">View source</a>
+        </div>
+      </div>
+    </section>
+
+    <section id="install" class="band install-band">
+      <div class="section-heading">
+        <p class="eyebrow">Install</p>
+        <h2>Run it from PowerShell, Bash, or the desktop launcher.</h2>
+      </div>
+      <div class="install-grid">
+        <article class="install-card">
+          <h3>Windows</h3>
+          <pre><code>irm https://raw.githubusercontent.com/wafflebyte8-hue/Goldid/main/setup.ps1 | iex</code></pre>
+          <p>Installs to `C:\goldid`, registers `gd`, installs Electron, and creates Desktop + Start Menu shortcuts.</p>
+        </article>
+        <article class="install-card">
+          <h3>Linux and macOS</h3>
+          <pre><code>curl -fsSL https://raw.githubusercontent.com/wafflebyte8-hue/Goldid/main/setup.sh | bash</code></pre>
+          <p>Installs the CLI on Linux and macOS. Linux also gets the desktop app and app-menu entry.</p>
+        </article>
+        <article class="install-card">
+          <h3>Update</h3>
+          <pre><code>gd update check
+gd update
+gd update --force</code></pre>
+          <p>Checks GitHub with cache-resistant version lookup and reruns the installer without touching `~/.goldid` data.</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="features" class="band">
+      <div class="section-heading">
+        <p class="eyebrow">Workflow</p>
+        <h2>Built around the conversation, not a dashboard.</h2>
+      </div>
+      <div class="feature-grid">
+        <article>
+          <h3>Local and cloud models</h3>
+          <p>OpenAI, Anthropic, Gemini, xAI, DeepSeek, OpenRouter, Ollama, vLLM, and LM Studio sit behind one provider system.</p>
+        </article>
+        <article>
+          <h3>Agent tools</h3>
+          <p>Read files, search projects, run shell commands, write files, search the web, generate images, and update persistent memory.</p>
+        </article>
+        <article>
+          <h3>Saved context</h3>
+          <p>Sessions, memory files, project instructions, and portable skills keep useful context available without pasting it every time.</p>
+        </article>
+        <article>
+          <h3>Approval modes</h3>
+          <p>Use ask, auto-edit, auto, or plan mode to control when edits and machine-affecting actions need approval.</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="skills" class="band skills-band">
+      <div class="section-heading">
+        <p class="eyebrow">Skills</p>
+        <h2>Download reusable skill packs from the community.</h2>
+        <p>GolDid skills are portable folders with `SKILL.md` and `Version.md`. Browse `/skills/`, open a skill detail page at `/skills/&lt;id&gt;/`, then install by id from the CLI or desktop.</p>
+      </div>
+      <div class="skills-grid">
+        <article class="skill-card featured">
+          <div>
+            <p class="skill-meta">Starter pack</p>
+            <h3>Project Maintainer</h3>
+            <p>Review a repository, summarize risks, propose fixes, and keep release notes tidy.</p>
+          </div>
+          <a class="download-link" href="skills/1929/">View skill</a>
+        </article>
+        <article class="skill-card">
+          <div>
+            <p class="skill-meta">Design</p>
+            <h3>Landing Page Critic</h3>
+            <p>Checks hierarchy, copy clarity, responsiveness, accessibility, and visual polish.</p>
+          </div>
+          <a class="download-link" href="#" aria-disabled="true">Coming soon</a>
+        </article>
+        <article class="skill-card">
+          <div>
+            <p class="skill-meta">DevOps</p>
+            <h3>CI Debugger</h3>
+            <p>Reads failing logs, identifies likely causes, and suggests narrow fixes.</p>
+          </div>
+          <a class="download-link" href="#" aria-disabled="true">Coming soon</a>
+        </article>
+      </div>
+      <div class="skill-submit">
+        <div>
+          <h3>Want your skill listed?</h3>
+          <p>Upload `SKILL.md` and `Version.md` to validate the package, then submit the generated registry entry.</p>
+        </div>
+        <div class="submit-actions">
+          <a class="button primary" href="skills/">Browse skills</a>
+          <a class="button secondary" href="skills/upload/">Validate upload</a>
+        </div>
+      </div>
+    </section>
+
+    <section id="desktop" class="desktop-section">
+      <div class="desktop-copy">
+        <p class="eyebrow">Desktop</p>
+        <h2>A focused Electron shell for the same GolDid core.</h2>
+        <p>The desktop app shares config, memory, sessions, skills, providers, sandbox settings, image setup, and update checks with the CLI. It adds Markdown rendering, a command menu, settings dialogs, sidebar browsing, and inline tool approvals.</p>
+      </div>
+      <div class="app-frame" aria-label="GolDid desktop preview">
+        <div class="frame-sidebar">
+          <div class="mini-brand"><img src="assets/goldid-logo.png" alt="">GolDid</div>
+          <span></span><span></span><span></span>
+        </div>
+        <div class="frame-main">
+          <div class="frame-top"></div>
+          <div class="message assistant"></div>
+          <div class="message user"></div>
+          <div class="message assistant short"></div>
+          <div class="composer"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="security" class="band security-band">
+      <div class="section-heading">
+        <p class="eyebrow">Security</p>
+        <h2>Practical guardrails for local agent work.</h2>
+      </div>
+      <div class="security-list">
+        <p><strong>Keys at rest:</strong> API keys are encrypted with AES-256-GCM, with TPM sealing where available and machine-bound fallback elsewhere.</p>
+        <p><strong>Dangerous tools:</strong> shell, write_file, and generate_image can require explicit approval, with exact arguments shown before execution.</p>
+        <p><strong>Sandboxing:</strong> jail mode confines file and shell tools to the launch directory; docker mode gives stronger shell isolation.</p>
+        <p><strong>Desktop hardening:</strong> context isolation, no node integration, a narrow preload API, DOMPurify for assistant Markdown, and escaped user/file content.</p>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <span>GolDid 0.15.2</span>
+    <a href="https://github.com/wafflebyte8-hue/Goldid">GitHub</a>
+  </footer>
+</body>
+</html>

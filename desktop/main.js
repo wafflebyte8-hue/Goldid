@@ -16,7 +16,7 @@ const keystore = require('../lib/keystore');
 const agentmode = require('../lib/agentmode');
 const updater = require('../lib/updater');
 
-const VERSION = '0.13.3';
+const VERSION = '0.15.2';
 
 // The GolDid desktop app supports Windows and Linux only. On macOS, use the CLI.
 if (process.platform === 'darwin') {
@@ -200,6 +200,8 @@ ipcMain.handle('skill:view', (_, name) => {
   if (!skill) throw new Error('Skill not found');
   return skills.render(skill);
 });
+ipcMain.handle('skill:registry', () => skills.fetchRegistry());
+ipcMain.handle('skill:install', (_, id) => skills.installFromRegistry(id));
 ipcMain.handle('path:open', (_, target) => shell.openPath(target));
 ipcMain.on('tool:approval-response', (_, payload) => {
   const resolve = approvals.get(payload.id);

@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Validate a GolDid skill package before submitting it to the public skill registry.">
+  <title>Upload a Skill - GolDid</title>
+  <link rel="icon" href="../../assets/goldid-logo.png">
+  <link rel="stylesheet" href="../../styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="../../"><img src="../../assets/goldid-logo.png" alt=""><span>GolDid</span></a>
+    <nav aria-label="Upload navigation">
+      <a href="../../#skills">Skills</a>
+      <a href="https://github.com/wafflebyte8-hue/Goldid">Submit</a>
+    </nav>
+  </header>
+  <main>
+    <section class="skill-hero">
+      <p class="eyebrow">Skill upload</p>
+      <h1>Validate two files.</h1>
+      <p class="lead">Upload `SKILL.md` and `Version.md` to check that a skill package is ready for GolDid. Static Firebase Hosting cannot publish visitor uploads automatically, so this page validates the files and shows the registry entry to submit.</p>
+      <form class="upload-form" id="skillUploadForm">
+        <label>SKILL.md<input id="skillFile" type="file" accept=".md,text/markdown,text/plain" required></label>
+        <label>Version.md<input id="versionFile" type="file" accept=".md,text/markdown,text/plain" required></label>
+        <button class="button primary" type="submit">Validate skill</button>
+      </form>
+      <pre id="uploadResult"><code>Choose both files to begin.</code></pre>
+    </section>
+  </main>
+  <script>
+    const read = (file) => new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ''));
+      reader.onerror = () => reject(reader.error);
+      reader.readAsText(file);
+    });
+    const field = (text, name) => {
+      const re = new RegExp('^' + name + ':\\\\s*(.+)$', 'mi');
+      return (text.match(re)?.[1] || '').replace(/^["']|["']$/g, '').trim();
+    };
+    document.getElementById('skillUploadForm').addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const skill = await read(document.getElementById('skillFile').files[0]);
+      const version = await read(document.getElementById('versionFile').files[0]);
+      const name = field(version, 'Name') || field(skill, 'name');
+      const description = field(version, 'Description') || field(skill, 'description');
+      const author = field(version, 'Author') || field(skill, 'author');
+      const semver = field(version, 'version') || field(skill, 'version') || '1.0.0';
+      const problems = [];
+      if (!/^---\\n[\\s\\S]+?\\n---\\n/.test(skill)) problems.push('SKILL.md should start with YAML frontmatter.');
+      if (!name) problems.push('Version.md needs Name, or SKILL.md needs name.');
+      if (!description) problems.push('Version.md needs Description, or SKILL.md needs description.');
+      if (!author) problems.push('Version.md needs Author, or SKILL.md needs author.');
+      const id = name ? name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 48) : 'your-skill-id';
+      const entry = {
+        id,
+        name,
+        description,
+        author,
+        version: semver,
+        tags: [],
+        pageUrl: `/skills/${id}/`,
+        skillUrl: `/skills/${id}/SKILL.md`,
+        versionUrl: `/skills/${id}/Version.md`
+      };
+      document.getElementById('uploadResult').textContent = problems.length
+        ? 'Fix these before submitting:\\n- ' + problems.join('\\n- ')
+        : 'Looks ready. Add these files under public/skills/' + id + '/ and add this to registry.json:\\n\\n' + JSON.stringify(entry, null, 2);
+    });
+  </script>
+</body>
+</html>

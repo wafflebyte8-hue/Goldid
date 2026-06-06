@@ -14,6 +14,8 @@ contextBridge.exposeInMainWorld('goldid', {
   loadSession: (id) => ipcRenderer.invoke('session:load', id),
   deleteSession: (id) => ipcRenderer.invoke('session:delete', id),
   viewSkill: (name) => ipcRenderer.invoke('skill:view', name),
+  skillRegistry: () => ipcRenderer.invoke('skill:registry'),
+  installSkill: (id) => ipcRenderer.invoke('skill:install', id),
   openPath: (target) => ipcRenderer.invoke('path:open', target),
   sendChat: (input) => ipcRenderer.invoke('chat:send', input),
   cancelChat: (requestId) => ipcRenderer.invoke('chat:cancel', requestId),
