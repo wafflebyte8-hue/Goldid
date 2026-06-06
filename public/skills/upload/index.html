@@ -20,10 +20,10 @@
     <section class="skill-hero">
       <p class="eyebrow">Skill upload</p>
       <h1>Validate two files.</h1>
-      <p class="lead">Upload `SKILL.md` and `Version.md` to check that a skill package is ready for GolDid. Static Firebase Hosting cannot publish visitor uploads automatically, so this page validates the files and shows the registry entry to submit.</p>
+      <p class="lead">Upload `SKILL.md` and `Version.js` to check that a skill package is ready for GolDid. Static Firebase Hosting cannot publish visitor uploads automatically, so this page validates the files and shows the registry entry to submit.</p>
       <form class="upload-form" id="skillUploadForm">
         <label>SKILL.md<input id="skillFile" type="file" accept=".md,text/markdown,text/plain" required></label>
-        <label>Version.md<input id="versionFile" type="file" accept=".md,text/markdown,text/plain" required></label>
+        <label>Version.js<input id="versionFile" type="file" accept=".js,text/javascript,text/plain" required></label>
         <button class="button primary" type="submit">Validate skill</button>
       </form>
       <pre id="uploadResult"><code>Choose both files to begin.</code></pre>
@@ -37,22 +37,33 @@
       reader.readAsText(file);
     });
     const field = (text, name) => {
-      const re = new RegExp('^' + name + ':\\\\s*(.+)$', 'mi');
+      const re = new RegExp('^' + name + ':\\s*(.+)$', 'mi');
       return (text.match(re)?.[1] || '').replace(/^["']|["']$/g, '').trim();
+    };
+    const parseVersionJs = (text) => {
+      const match = String(text || '').match(/module\.exports\s*=\s*(\{[\s\S]*?\})\s*;?\s*$/m);
+      if (!match) return {};
+      try {
+        return Function('"use strict"; return (' + match[1] + ');')();
+      } catch {
+        return {};
+      }
     };
     document.getElementById('skillUploadForm').addEventListener('submit', async (event) => {
       event.preventDefault();
       const skill = await read(document.getElementById('skillFile').files[0]);
       const version = await read(document.getElementById('versionFile').files[0]);
-      const name = field(version, 'Name') || field(skill, 'name');
-      const description = field(version, 'Description') || field(skill, 'description');
-      const author = field(version, 'Author') || field(skill, 'author');
-      const semver = field(version, 'version') || field(skill, 'version') || '1.0.0';
+      const manifest = parseVersionJs(version);
+      const name = manifest.Name || field(version, 'Name') || field(skill, 'name');
+      const description = manifest.Description || field(version, 'Description') || field(skill, 'description');
+      const author = manifest.Author || field(version, 'Author') || field(skill, 'author');
+      const semver = field(skill, 'version') || field(version, 'version') || '1.0.0';
       const problems = [];
-      if (!/^---\\n[\\s\\S]+?\\n---\\n/.test(skill)) problems.push('SKILL.md should start with YAML frontmatter.');
-      if (!name) problems.push('Version.md needs Name, or SKILL.md needs name.');
-      if (!description) problems.push('Version.md needs Description, or SKILL.md needs description.');
-      if (!author) problems.push('Version.md needs Author, or SKILL.md needs author.');
+      if (!/^---\n[\s\S]+?\n---\n/.test(skill.replace(/\r\n/g, '\n'))) problems.push('SKILL.md should start with YAML frontmatter.');
+      if (!/module\.exports\s*=/.test(version)) problems.push('Version.js should export metadata with module.exports = {...}.');
+      if (!name) problems.push('Version.js needs Name, or SKILL.md needs name.');
+      if (!description) problems.push('Version.js needs Description, or SKILL.md needs description.');
+      if (!author) problems.push('Version.js needs Author, or SKILL.md needs author.');
       const id = name ? name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 48) : 'your-skill-id';
       const entry = {
         id,
@@ -63,7 +74,7 @@
         tags: [],
         pageUrl: `/skills/${id}/`,
         skillUrl: `/skills/${id}/SKILL.md`,
-        versionUrl: `/skills/${id}/Version.md`
+        versionUrl: `/skills/${id}/Version.js`
       };
       document.getElementById('uploadResult').textContent = problems.length
         ? 'Fix these before submitting:\\n- ' + problems.join('\\n- ')
