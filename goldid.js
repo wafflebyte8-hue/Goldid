@@ -14,6 +14,7 @@
 
 const readline = require('readline');
 const config = require('./lib/config');
+const keystore = require('./lib/keystore');
 const providers = require('./lib/providers');
 const ui = require('./lib/ui');
 const markdown = require('./lib/markdown');
@@ -1012,6 +1013,38 @@ async function imageCmd(args, ctx) {
   console.log('');
 }
 
+function keystoreCmd(args) {
+  const a = (args[0] || '').toLowerCase();
+  if (a === 'migrate' || a === 'seal' || a === 'tpm') {
+    const r = keystore.migrateToTpm();
+    return r.ok ? ui.success(r.message) : ui.warning(r.message);
+  }
+  if (a === 'revert' || a === 'unseal' || a === 'plaintext') {
+    const r = keystore.revertToPlaintext();
+    return r.ok ? ui.success(r.message) : ui.warning(r.message);
+  }
+  const s = keystore.status();
+  const label =
+    s.mode === 'tpm' ? ui.amber('TPM-sealed')
+    : s.mode === 'machine' ? ui.amber('machine-bound (double-encrypted, hidden)')
+    : s.mode === 'plaintext' ? ui.dim('plaintext key.bin')
+    : ui.dim('not initialized');
+  ui.kv('key storage', label);
+  ui.kv('platform', ui.dim(s.platform));
+  ui.kv('TPM available', s.tpmAvailable ? ui.color.green('yes') : ui.dim('no'));
+  if (s.platform === 'linux') {
+    ui.kv('TPM device', s.linuxTpmDevice ? ui.color.green('present') : ui.dim('none'));
+    ui.kv('tpm2-tools', s.tpm2ToolsInstalled ? ui.color.green('installed') : ui.dim('missing'));
+  }
+  if (s.mode !== 'tpm') {
+    if (s.tpmAvailable) ui.info('seal the key with the TPM: /keystore migrate');
+    else if (s.platform === 'linux' && s.linuxTpmDevice) ui.info('install tpm2-tools and seal: /keystore migrate (may prompt for sudo)');
+    else ui.info('no TPM — /keystore migrate double-encrypts and hides the key, bound to this machine');
+  } else {
+    ui.info('revert to a plaintext key: /keystore revert');
+  }
+}
+
 function toolsCmd() {
   const cfg = config.load();
   const rows = [
@@ -1039,6 +1072,7 @@ function printHelp() {
     ['/agent [on|off]', 'toggle tool use (the agent)'],
     ['/sandbox [mode]', 'confine tools: off | jail | docker'],
     ['/image', 'set up image generation (provider + model)'],
+    ['/keystore [migrate]', 'show or change API-key protection (TPM)'],
     ['/tools', 'list the agent tools'],
     ['/soul', 'show/locate the SOUL.md personality file'],
     ['/memory', 'show or edit persistent memory'],
@@ -1096,6 +1130,7 @@ const slash = {
   agent: { run: (args) => agentCmd(args) },
   sandbox: { run: (args) => sandboxCmd(args) },
   image: { run: (args, ctx) => imageCmd(args, ctx) },
+  keystore: { run: (args) => keystoreCmd(args) },
   tools: { run: () => toolsCmd() },
   soul: { run: () => soulCmd() },
   memory: { run: (args, ctx) => memoryCmd(args, ctx) },
@@ -1298,7 +1333,7 @@ function repl(ctx) {
 
 const UTILITY = new Set([
   'setup', 'use', 'model', 'models', 'providers', 'key', 'url',
-  'agent', 'sandbox', 'image', 'tools', 'soul', 'memory', 'remember', 'forget', 'config',
+  'agent', 'sandbox', 'image', 'keystore', 'tools', 'soul', 'memory', 'remember', 'forget', 'config',
   'sessions', 'session', 'resume', 'delete-session',
   'skills', 'skill',
   'migrate',
