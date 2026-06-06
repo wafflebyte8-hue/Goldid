@@ -138,24 +138,28 @@ async function setImageModel(model) {
 function showNotice(text) {
   $('detailTitle').textContent = 'GolDid';
   $('detailContent').textContent = text;
-  $('detailDialog').showModal();
+  if (!$('detailDialog').open) $('detailDialog').showModal();
 }
 
 async function checkUpdate() {
   try {
     const status = await window.goldid.checkUpdate();
-    showNotice([
+    $('detailTitle').textContent = 'GolDid Update';
+    $('detailContent').textContent = [
       `Current: ${status.current}`,
       `Latest:  ${status.latest}`,
       status.updateAvailable ? 'Update available. Run /update to install it.' : 'GolDid is already up to date.',
-    ].join('\n'));
+    ].join('\n');
+    if (!$('detailDialog').open) $('detailDialog').showModal();
   } catch (error) {
     showNotice(error.message || String(error));
   }
 }
 
 async function updateApp(force) {
-  showNotice('Checking for updates...');
+  $('detailTitle').textContent = 'GolDid Update';
+  $('detailContent').textContent = 'Checking for updates...';
+  if (!$('detailDialog').open) $('detailDialog').showModal();
   try {
     const result = await window.goldid.runUpdate({ force });
     if (result.skipped) {
@@ -176,7 +180,7 @@ async function updateApp(force) {
 function showCommandHelp() {
   $('detailTitle').textContent = 'Desktop commands';
   $('detailContent').textContent = commands.map((item) => `${item.usage.padEnd(16)} ${item.description}`).join('\n');
-  $('detailDialog').showModal();
+  if (!$('detailDialog').open) $('detailDialog').showModal();
 }
 
 function showToolHelp() {
@@ -197,7 +201,7 @@ function showToolHelp() {
     'write_file       Create or overwrite a file (approval required)',
     'shell            Run a command (approval required)',
   ].join('\n');
-  $('detailDialog').showModal();
+  if (!$('detailDialog').open) $('detailDialog').showModal();
 }
 
 function renderCommandMenu() {
@@ -325,14 +329,14 @@ async function loadSession(id) {
 async function showSkill(name) {
   $('detailTitle').textContent = name;
   $('detailContent').textContent = await window.goldid.viewSkill(name);
-  $('detailDialog').showModal();
+  if (!$('detailDialog').open) $('detailDialog').showModal();
 }
 
 function showMemory(target) {
   const item = state.snapshot.memory[target];
   $('detailTitle').textContent = `${target} memory`;
   $('detailContent').textContent = item.entries.length ? item.entries.join('\n\n---\n\n') : '(empty)';
-  $('detailDialog').showModal();
+  if (!$('detailDialog').open) $('detailDialog').showModal();
 }
 
 function newChat() {
