@@ -29,7 +29,7 @@ const skills = require('./lib/skills');
 const migrate = require('./lib/migrate');
 const updater = require('./lib/updater');
 
-const VERSION = '0.15.2';
+const VERSION = '0.15.3';
 const TOOL_TAG = '<tool_call>';
 
 const toolsEnabled = (cfg) => cfg.agent?.tools !== false; // default on

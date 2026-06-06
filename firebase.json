@@ -6,6 +6,18 @@
       "**/.*",
       "**/node_modules/**"
     ],
+    "redirects": [
+      {
+        "source": "/upload",
+        "destination": "/skills/upload",
+        "type": 301
+      },
+      {
+        "source": "/upload/",
+        "destination": "/skills/upload/",
+        "type": 301
+      }
+    ],
     "cleanUrls": true,
     "trailingSlash": false
   }
