@@ -42,21 +42,21 @@
           <p>Ask a question, explore a project, or continue a saved conversation.</p>
         </div>
       </section>
-      <div id="approvalBar" class="approval-bar" hidden>
-        <div class="approval-main">
-          <img src="icons/terminal.svg" alt="">
-          <div class="approval-text">
-            <strong id="approvalText"></strong>
-            <pre id="approvalArgsInline"></pre>
-          </div>
-        </div>
-        <div class="approval-actions">
-          <button type="button" id="inlineDeny" class="secondary-button">Deny</button>
-          <button type="button" id="inlineApprove" class="primary-button">Approve</button>
-        </div>
-      </div>
       <form id="composer" class="composer">
         <div id="commandMenu" class="command-menu" role="listbox" aria-label="Slash commands"></div>
+        <div id="approvalBar" class="approval-bar" hidden>
+          <div class="approval-main">
+            <img src="icons/terminal.svg" alt="">
+            <div class="approval-text">
+              <strong id="approvalText"></strong>
+              <pre id="approvalArgsInline"></pre>
+            </div>
+          </div>
+          <div class="approval-actions">
+            <button type="button" id="inlineDeny" class="secondary-button">Deny</button>
+            <button type="button" id="inlineApprove" class="primary-button">Approve</button>
+          </div>
+        </div>
         <textarea id="messageInput" rows="1" placeholder="Message GolDid" aria-label="Message GolDid"></textarea>
         <button id="sendButton" class="send-button" type="submit" title="Send" aria-label="Send"><img src="icons/send.svg" alt=""></button>
         <button id="stopButton" class="send-button stop-button" type="button" hidden title="Stop" aria-label="Stop"><span class="stop-glyph"></span></button>
