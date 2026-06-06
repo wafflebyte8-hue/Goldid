@@ -144,8 +144,48 @@ dialog footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 
 #detailDialog { width: min(780px, calc(100% - 32px)); }
 #detailDialog article { display: grid; grid-template-rows: auto minmax(0, 1fr); overflow: hidden; }
 #detailContent { min-height: 0; max-height: 60vh; overflow: auto; overscroll-behavior: contain; white-space: pre-wrap; color: #d8d4c8; line-height: 1.55; }
-#approvalDialog { width: min(620px, calc(100% - 32px)); }
-#approvalArgs { max-height: 40vh; overflow: auto; padding: 14px; border: 1px solid var(--line); border-radius: 5px; background: #141411; color: #d8d4c8; white-space: pre-wrap; }
+/* Inline approval bar (replaces the old modal dialog) */
+.approval-bar { width: min(860px, calc(100% - 48px)); margin: 0 auto 10px; padding: 12px 14px; display: flex; align-items: center; justify-content: space-between; gap: 14px; background: #211c12; border: 1px solid #6b5a2e; border-radius: 7px; animation: tool-enter 200ms var(--ease-out) both; }
+.approval-main { display: flex; gap: 10px; min-width: 0; align-items: start; }
+.approval-main img { width: 18px; height: 18px; margin-top: 2px; }
+.approval-text { min-width: 0; }
+.approval-text strong { display: block; font-size: 13px; color: var(--gold-strong); margin-bottom: 4px; }
+#approvalArgsInline { margin: 0; max-height: 120px; overflow: auto; font-family: Consolas, "Cascadia Code", monospace; font-size: 12px; color: #d8d4c8; white-space: pre-wrap; overflow-wrap: anywhere; }
+.approval-actions { display: flex; gap: 8px; flex-shrink: 0; }
+.approval-actions .secondary-button, .approval-actions .primary-button { min-height: 34px; }
+
+/* Stop button (shares .send-button sizing) */
+.stop-button { background: var(--danger); }
+.stop-button:hover { background: #e98c83; transform: translateY(-2px) scale(1.03); }
+.stop-glyph { width: 14px; height: 14px; background: #17130a; border-radius: 2px; display: block; margin: auto; }
+
+/* Generated images shown inline in the chat */
+.gen-image { display: inline-block; margin: 10px 8px 4px 0; cursor: pointer; }
+.gen-image img { max-width: min(420px, 100%); max-height: 420px; border-radius: 7px; border: 1px solid var(--line); display: block; transition: transform 160ms var(--ease-out), border-color 160ms ease; }
+.gen-image:hover img { transform: scale(1.01); border-color: #5a5747; }
+
+/* Copy buttons on code blocks and messages */
+.code-block { position: relative; }
+.copy-btn { position: absolute; top: 6px; right: 6px; border: 1px solid var(--line); background: #1d1d18; color: var(--muted); font-size: 11px; padding: 3px 8px; border-radius: 4px; opacity: 0; transition: opacity 150ms ease, color 150ms ease, border-color 150ms ease; }
+.code-block:hover .copy-btn, .copy-btn:focus-visible { opacity: 1; }
+.copy-btn:hover { color: var(--text); border-color: #5a5747; }
+.message-body { position: relative; }
+.msg-copy { top: 0; right: 0; }
+.message-body:hover .msg-copy { opacity: 1; }
+
+/* Security section in the settings dialog */
+.security-section { border: 1px solid var(--line); border-radius: 6px; padding: 14px; margin: 4px 0 14px; }
+.security-section legend { color: var(--gold-strong); font-size: 12px; text-transform: uppercase; padding: 0 6px; }
+.keystore-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; color: var(--muted); font-size: 13px; }
+.keystore-row strong { color: var(--text); }
+.keystore-row small { display: block; margin-top: 3px; color: var(--muted); }
+.keystore-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.keystore-actions .secondary-button { min-height: 34px; font-size: 12px; }
+
+/* Clickable sidebar footer opens settings */
+.sidebar-footer { cursor: pointer; }
+.sidebar-footer:hover { background: #ffffff05; }
+
 body.is-streaming .send-button img { animation: stream-arrow 900ms ease-in-out infinite; }
 body.is-streaming .message.assistant:last-of-type .avatar { animation: assistant-pulse 1.4s ease-in-out infinite; }
 

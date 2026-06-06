@@ -12,6 +12,7 @@ const skills = require('../lib/skills');
 const projectContext = require('../lib/context');
 const tools = require('../lib/tools');
 const sandbox = require('../lib/sandbox');
+const keystore = require('../lib/keystore');
 
 // The GolDid desktop app supports Windows and Linux only. On macOS, use the CLI.
 if (process.platform === 'darwin') {
@@ -22,6 +23,7 @@ if (process.platform === 'darwin') {
 
 let mainWindow;
 const approvals = new Map();
+const activeRequests = new Map(); // requestId -> AbortController (for cancel)
 
 if (process.env.GOLDID_DESKTOP_TEST_PROFILE) {
   app.setPath('userData', process.env.GOLDID_DESKTOP_TEST_PROFILE);
@@ -168,6 +170,10 @@ ipcMain.handle('models:list', async (_, provider) => {
   return providers.fetchModels(provider, cfg.providers[provider] || {});
 });
 
+ipcMain.handle('keystore:status', () => keystore.status());
+ipcMain.handle('keystore:migrate', () => keystore.migrateToTpm());
+ipcMain.handle('keystore:revert', () => keystore.revertToPlaintext());
+
 ipcMain.handle('session:load', (_, id) => sessions.load(id));
 ipcMain.handle('session:delete', (_, id) => sessions.remove(id));
 ipcMain.handle('skill:view', (_, name) => {
@@ -224,6 +230,13 @@ async function runDesktopTool(sender, call, sessionId) {
   try {
     const output = await tool.run(call.args || {}, ctx);
     sender.send('tool:status', { id, name: call.name, state: 'complete' });
+    // Surface a generated image inline: the tool returns "Saved N bytes to <path>".
+    if (call.name === 'generate_image') {
+      const m = String(output).match(/Saved \d+ bytes to (.+)$/);
+      if (m && fs.existsSync(m[1])) {
+        sender.send('tool:image', { path: m[1], url: 'file://' + m[1].replace(/\\/g, '/') });
+      }
+    }
     return output;
   } catch (error) {
     sender.send('tool:status', { id, name: call.name, state: 'error', error: error.message });
@@ -252,61 +265,87 @@ ipcMain.handle('chat:send', async (event, input) => {
   });
   let finalText = '';
 
-  // Unlimited tool-calling: loop until the model returns a final answer with no
-  // tool call. The model controls termination — there is no fixed step cap.
-  while (true) {
-    if (native) {
-      const result = await providers.chatStream(
+  // Per-request abort controller so the renderer's Stop button can cancel.
+  const controller = new AbortController();
+  if (input.requestId) activeRequests.set(input.requestId, controller);
+  const cancelled = () => controller.signal.aborted;
+
+  try {
+    // Unlimited tool-calling: loop until the model returns a final answer with no
+    // tool call. The model controls termination — there is no fixed step cap.
+    while (!cancelled()) {
+      if (native) {
+        let streamed = '';
+        let result;
+        try {
+          result = await providers.chatStream(
+            cfg.active.provider,
+            cfg.providers[cfg.active.provider] || {},
+            cfg.active.model,
+            conversation,
+            {
+              system,
+              tools: tools.toolSchemas(),
+              signal: controller.signal,
+              onDelta: (text) => { streamed += text; event.sender.send('chat:delta', { requestId: input.requestId, text }); },
+            }
+          );
+        } catch (e) {
+          if (cancelled()) { finalText = streamed; break; }
+          throw e;
+        }
+        if (!result.toolCalls.length) {
+          finalText = result.text;
+          conversation.push({ role: 'assistant', content: result.text });
+          break;
+        }
+        conversation.push({ role: 'assistant', content: result.text || '', tool_calls: result.toolCalls });
+        for (const tc of result.toolCalls) {
+          if (cancelled()) break;
+          let args = {};
+          try { args = tc.function.arguments ? JSON.parse(tc.function.arguments) : {}; } catch { /* report through tool */ }
+          const output = await runDesktopTool(event.sender, { name: tc.function.name, args }, sessionId);
+          conversation.push({ role: 'tool', tool_call_id: tc.id, content: output });
+        }
+        continue;
+      }
+
+      const text = await providers.chat(
         cfg.active.provider,
         cfg.providers[cfg.active.provider] || {},
         cfg.active.model,
         conversation,
-        {
-          system,
-          tools: tools.toolSchemas(),
-          onDelta: (text) => event.sender.send('chat:delta', { requestId: input.requestId, text }),
-        }
+        { system }
       );
-      if (!result.toolCalls.length) {
-        finalText = result.text;
-        conversation.push({ role: 'assistant', content: result.text });
+      if (cancelled()) break;
+      const call = useTools ? tools.parseToolCall(text) : null;
+      if (!call) {
+        finalText = text;
+        conversation.push({ role: 'assistant', content: text });
+        event.sender.send('chat:delta', { requestId: input.requestId, text });
         break;
       }
-      conversation.push({ role: 'assistant', content: result.text || '', tool_calls: result.toolCalls });
-      for (const tc of result.toolCalls) {
-        let args = {};
-        try { args = tc.function.arguments ? JSON.parse(tc.function.arguments) : {}; } catch { /* report through tool */ }
-        const output = await runDesktopTool(event.sender, { name: tc.function.name, args }, sessionId);
-        conversation.push({ role: 'tool', tool_call_id: tc.id, content: output });
-      }
-      continue;
-    }
-
-    const text = await providers.chat(
-      cfg.active.provider,
-      cfg.providers[cfg.active.provider] || {},
-      cfg.active.model,
-      conversation,
-      { system }
-    );
-    const call = useTools ? tools.parseToolCall(text) : null;
-    if (!call) {
-      finalText = text;
       conversation.push({ role: 'assistant', content: text });
-      event.sender.send('chat:delta', { requestId: input.requestId, text });
-      break;
+      const output = await runDesktopTool(event.sender, call, sessionId);
+      conversation.push({
+        role: 'user',
+        content: `<tool_result name="${call.name}">\n${output}\n</tool_result>`,
+      });
     }
-    conversation.push({ role: 'assistant', content: text });
-    const output = await runDesktopTool(event.sender, call, sessionId);
-    conversation.push({
-      role: 'user',
-      content: `<tool_result name="${call.name}">\n${output}\n</tool_result>`,
-    });
+  } finally {
+    if (input.requestId) activeRequests.delete(input.requestId);
   }
 
-  if (!finalText) finalText = '(reached the tool-call limit for this turn)';
+  const stopped = cancelled();
+  if (!finalText && !stopped) finalText = '(no answer produced)';
   sessions.save(sessionId, conversation, { cwd: process.cwd() });
-  return { sessionId, text: finalText };
+  return { sessionId, text: finalText, stopped };
+});
+
+ipcMain.handle('chat:cancel', (_, requestId) => {
+  const controller = activeRequests.get(requestId);
+  if (controller) { controller.abort(); return true; }
+  return false;
 });
 
 app.whenReady().then(() => {

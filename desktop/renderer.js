@@ -13,7 +13,7 @@ if (window.marked) {
   renderer.code = ({ text, lang }) => {
     const language = /^[A-Za-z0-9_+#.-]{1,24}$/.test(lang || '') ? lang : '';
     const label = language ? `<div class="code-label">${escapeHtml(language)}</div>` : '';
-    return `<div class="code-block">${label}<pre><code>${escapeHtml(text)}</code></pre></div>`;
+    return `<div class="code-block">${label}<button class="copy-btn" type="button" title="Copy">Copy</button><pre><code>${escapeHtml(text)}</code></pre></div>`;
   };
   window.marked.setOptions({ renderer, gfm: true, breaks: true });
 }
@@ -26,6 +26,19 @@ function renderMessageContent(value) {
   }
   const html = window.marked.parse(text);
   return `<div class="message-text">${window.DOMPurify.sanitize(html)}</div>`;
+}
+
+// Inner HTML of one message bubble: name, rendered content, any generated
+// images, and (for assistant messages with content) a copy button.
+function bubbleInner(message) {
+  const who = message.role === 'assistant' ? 'GolDid' : 'You';
+  const images = (message.images || [])
+    .map((img) => `<a class="gen-image" data-path="${escapeHtml(img.path)}" title="Open image"><img src="${escapeHtml(img.url)}" alt="generated image" loading="lazy"></a>`)
+    .join('');
+  const copy = message.role === 'assistant' && message.content
+    ? '<button class="msg-copy copy-btn" type="button" title="Copy message">Copy</button>'
+    : '';
+  return `<strong>${who}</strong>${copy}${renderMessageContent(message.content)}${images}`;
 }
 
 function renderStatus() {
@@ -222,7 +235,7 @@ function renderMessages() {
     return;
   }
   root.innerHTML = state.messages.map((message) =>
-    `<article class="message ${message.role}"><div class="avatar">${message.role === 'assistant' ? 'G' : 'Y'}</div><div class="message-body"><strong>${message.role === 'assistant' ? 'GolDid' : 'You'}</strong>${renderMessageContent(message.content)}</div></article>`
+    `<article class="message ${message.role}"><div class="avatar">${message.role === 'assistant' ? 'G' : 'Y'}</div><div class="message-body">${bubbleInner(message)}</div></article>`
   ).join('');
   root.scrollTop = root.scrollHeight;
 }
@@ -274,7 +287,30 @@ function openSettings() {
   $('providerSelect').innerHTML = providers.map((item) => `<option value="${item.key}">${escapeHtml(item.label)} · ${item.kind}</option>`).join('');
   $('providerSelect').value = cfg.active.provider || providers[0]?.key || '';
   syncProviderForm();
+  $('sandboxSelect').value = cfg.agent?.sandbox || 'off';
+  loadKeystoreStatus();
   $('settingsDialog').showModal();
+}
+
+async function loadKeystoreStatus() {
+  try {
+    const s = await window.goldid.keystoreStatus();
+    const label = s.mode === 'tpm' ? 'TPM-sealed'
+      : s.mode === 'machine' ? 'machine-bound (encrypted, hidden)'
+      : s.mode === 'plaintext' ? 'plaintext key.bin'
+      : 'not initialized';
+    $('keystoreMode').textContent = label;
+    let hint = '';
+    if (s.mode === 'tpm') hint = "Sealed to this machine's TPM — useless if copied elsewhere.";
+    else if (s.tpmAvailable) hint = 'TPM available — click "Seal with TPM".';
+    else if (s.platform === 'linux' && s.linuxTpmDevice) hint = 'TPM present; sealing may install tpm2-tools (asks for sudo).';
+    else hint = 'No TPM — "Seal with TPM" falls back to machine-bound encryption.';
+    $('keystoreHint').textContent = hint;
+    $('keystoreRevertBtn').hidden = s.mode === 'plaintext';
+  } catch (error) {
+    $('keystoreMode').textContent = 'unavailable';
+    $('keystoreHint').textContent = error.message || '';
+  }
 }
 
 function syncProviderForm() {
@@ -371,11 +407,11 @@ async function sendMessage(event) {
   state.requestId = crypto.randomUUID();
   state.toolEvents.clear();
   document.body.classList.add('is-streaming');
-  state.messages.push({ role: 'assistant', content: '' });
+  state.messages.push({ role: 'assistant', content: '', images: [] });
   renderMessages();
   state.streamingNode = $('messages').lastElementChild.querySelector('.message-body');
-  state.streamingNode.innerHTML = '<strong>GolDid</strong>';
-  $('sendButton').disabled = true;
+  state.streamingNode.innerHTML = bubbleInner(state.messages[state.messages.length - 1]);
+  setStreaming(true);
   try {
     const result = await window.goldid.sendChat({
       requestId: state.requestId,
@@ -383,7 +419,10 @@ async function sendMessage(event) {
       messages: state.messages.slice(0, -1),
     });
     state.sessionId = result.sessionId;
-    state.messages[state.messages.length - 1].content = result.text;
+    const last = state.messages[state.messages.length - 1];
+    // Keep streamed/partial content if a stop produced no final text.
+    last.content = result.text || last.content;
+    if (result.stopped) last.content += last.content ? '\n\n_(stopped)_' : '_(stopped)_';
     $('conversationTitle').textContent = state.messages.find((item) => item.role === 'user')?.content.slice(0, 64) || 'Conversation';
     await refresh();
   } catch (error) {
@@ -391,16 +430,35 @@ async function sendMessage(event) {
   } finally {
     state.requestId = null;
     state.streamingNode = null;
-    $('sendButton').disabled = false;
-    document.body.classList.remove('is-streaming');
+    setStreaming(false);
     renderMessages();
   }
+}
+
+function setStreaming(on) {
+  document.body.classList.toggle('is-streaming', on);
+  $('sendButton').hidden = on;
+  $('stopButton').hidden = !on;
+  $('messageInput').disabled = on;
+}
+
+async function stopStreaming() {
+  if (state.requestId) await window.goldid.cancelChat(state.requestId);
 }
 
 window.goldid.onDelta(({ requestId, text }) => {
   if (requestId !== state.requestId || !state.streamingNode) return;
   state.messages[state.messages.length - 1].content += text;
-  state.streamingNode.innerHTML = `<strong>GolDid</strong>${renderMessageContent(state.messages[state.messages.length - 1].content)}`;
+  state.streamingNode.innerHTML = bubbleInner(state.messages[state.messages.length - 1]);
+  $('messages').scrollTop = $('messages').scrollHeight;
+});
+
+window.goldid.onToolImage((payload) => {
+  const last = state.messages[state.messages.length - 1];
+  if (!last || last.role !== 'assistant') return;
+  (last.images = last.images || []).push(payload);
+  if (state.streamingNode) state.streamingNode.innerHTML = bubbleInner(last);
+  else renderMessages();
   $('messages').scrollTop = $('messages').scrollHeight;
 });
 
@@ -422,16 +480,17 @@ window.goldid.onToolStatus((payload) => {
 let pendingApproval = null;
 window.goldid.onApprovalRequest((payload) => {
   pendingApproval = payload;
-  $('approvalDescription').textContent = `${payload.name} is requesting permission to act on your machine.`;
-  $('approvalArgs').textContent = JSON.stringify(payload.args || {}, null, 2);
-  $('approvalDialog').showModal();
+  $('approvalText').textContent = `${payload.name} wants to run — approve?`;
+  $('approvalArgsInline').textContent = JSON.stringify(payload.args || {}, null, 2);
+  $('approvalBar').hidden = false;
+  $('inlineApprove').focus();
 });
 
 function answerApproval(approved) {
   if (!pendingApproval) return;
   window.goldid.respondApproval({ id: pendingApproval.id, approved });
   pendingApproval = null;
-  $('approvalDialog').close();
+  $('approvalBar').hidden = true;
 }
 
 async function deletePendingSession() {
@@ -453,12 +512,39 @@ $('providerSelect').addEventListener('change', syncProviderForm);
 $('fetchModelsButton').addEventListener('click', fetchModels);
 $('openDataButton').addEventListener('click', () => window.goldid.openPath(state.snapshot.dataDir));
 $('detailClose').addEventListener('click', () => $('detailDialog').close());
-$('denyToolButton').addEventListener('click', () => answerApproval(false));
-$('approveToolButton').addEventListener('click', () => answerApproval(true));
-$('approvalDialog').addEventListener('cancel', (event) => {
-  event.preventDefault();
-  answerApproval(false);
+$('inlineDeny').addEventListener('click', () => answerApproval(false));
+$('inlineApprove').addEventListener('click', () => answerApproval(true));
+$('stopButton').addEventListener('click', stopStreaming);
+
+// Esc denies a pending approval, or stops a running turn.
+document.addEventListener('keydown', (event) => {
+  if (event.key !== 'Escape') return;
+  if (pendingApproval) { answerApproval(false); }
+  else if (state.requestId) { stopStreaming(); }
 });
+
+// Copy buttons (code blocks + message) and generated-image clicks, via delegation.
+$('messages').addEventListener('click', (event) => {
+  const copyBtn = event.target.closest('.copy-btn');
+  if (copyBtn) {
+    const block = copyBtn.closest('.code-block');
+    const body = copyBtn.closest('.message-body');
+    const text = block
+      ? block.querySelector('code')?.textContent || ''
+      : body?.querySelector('.message-text')?.innerText || '';
+    navigator.clipboard.writeText(text).then(() => {
+      const old = copyBtn.textContent;
+      copyBtn.textContent = 'Copied';
+      setTimeout(() => { copyBtn.textContent = old; }, 1200);
+    });
+    return;
+  }
+  const img = event.target.closest('.gen-image');
+  if (img && img.dataset.path) window.goldid.openPath(img.dataset.path);
+});
+
+// Click the sidebar footer (provider/model) to open settings.
+document.querySelector('.sidebar-footer')?.addEventListener('click', openSettings);
 $('cancelDeleteButton').addEventListener('click', () => {
   sessionPendingDelete = null;
   $('deleteDialog').close();
@@ -528,6 +614,40 @@ $('settingsForm').addEventListener('submit', async (event) => {
   $('apiKeyInput').value = '';
   $('settingsDialog').close();
   await refresh();
+});
+
+$('sandboxSelect').addEventListener('change', async (event) => {
+  try {
+    state.snapshot.config = await window.goldid.setSandbox(event.target.value);
+    renderStatus();
+  } catch (error) {
+    showNotice(error.message || String(error));
+    event.target.value = state.snapshot.config.agent?.sandbox || 'off';
+  }
+});
+$('keystoreMigrateBtn').addEventListener('click', async () => {
+  const btn = $('keystoreMigrateBtn');
+  const old = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Sealing…';
+  try {
+    const r = await window.goldid.keystoreMigrate();
+    showNotice(r.message || (r.ok ? 'Done.' : 'Failed.'));
+  } catch (error) {
+    showNotice(error.message || String(error));
+  } finally {
+    btn.disabled = false; btn.textContent = old;
+    loadKeystoreStatus();
+  }
+});
+$('keystoreRevertBtn').addEventListener('click', async () => {
+  try {
+    const r = await window.goldid.keystoreRevert();
+    showNotice(r.message || 'Reverted.');
+  } catch (error) {
+    showNotice(error.message || String(error));
+  } finally {
+    loadKeystoreStatus();
+  }
 });
 
 $('imageProviderSelect').addEventListener('change', syncImageForm);
