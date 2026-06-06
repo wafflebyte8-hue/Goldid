@@ -63,9 +63,20 @@ curl -fsSL https://raw.githubusercontent.com/wafflebyte8-hue/Goldid/main/setup.s
 bash setup.sh --install-dir "$HOME/apps/goldid"
 ```
 
-running the installer again just updates GolDid — it won't nuke your settings or
-memories. the desktop app shares the same encrypted config, memories, skills, and
-sessions as the CLI.
+update from inside GolDid:
+
+```powershell
+gd update check
+gd update
+```
+
+`gd update` checks GitHub, reruns the installer only when a newer version exists,
+and leaves your settings, keys, memories, skills, and sessions under `~/.goldid`
+alone. If an old install gets confused by cached GitHub metadata, run
+`gd update --force` once. Running the installer manually still works too.
+
+the desktop app shares the same encrypted config, memories, skills, and sessions
+as the CLI.
 
 ### Uninstall
 
@@ -123,6 +134,7 @@ entry. it does basically everything the CLI does:
 - jump straight to your GolDid data folder
 - full agent tools (files, web search, memory, skills, shell, images)
 - approval popups before `shell`, `write_file`, or `generate_image` run
+- update checks and installs through `/update check` and `/update`
 
 it follows the same `/agent` setting as the CLI. if you turned tools off with
 `/agent off`, turn them back on with `/agent on`. read-only tools just run;
@@ -131,7 +143,7 @@ anything that touches your machine asks first.
 type `/` in the composer to open the command menu — arrow keys to pick, `Tab` to
 complete, `Enter` to run. desktop commands include `/new`, `/settings`,
 `/sessions`, `/skills`, `/memory`, `/agent on`, `/agent off`, `/sandbox`,
-`/image`, `/tools`, `/clear`, and `/help`.
+`/image`, `/update`, `/tools`, `/clear`, and `/help`.
 
 dev it locally (Windows or Linux):
 
@@ -536,6 +548,7 @@ keys. never upload `config.json`, `key.bin`, or `key.tpm`.
 | `/key <provider> [key]`        | Set an API key                             |
 | `/url <provider> [url]`        | Set a provider URL                         |
 | `/agent [on\|off]`             | Enable or disable tools                    |
+| `/mode [ask\|auto-edit\|auto\|plan]` | Change edit/command approval behavior      |
 | `/sandbox [off\|jail\|docker]` | Confine tools to a directory or container  |
 | `/image [model]`               | Set up image generation (provider + model) |
 | `/keystore [migrate\|revert]`  | Show/change API-key protection (TPM)       |
@@ -582,6 +595,7 @@ GolDid/
     context.js     Project instruction discovery
     skills.js      Hermes/OpenClaw-compatible skill discovery
     migrate.js     Combined Hermes/OpenClaw migration
+    updater.js     Version checks and installer-backed updates
     tools.js       Agent tools
     ui.js          Terminal interface
     markdown.js    Markdown to ANSI rendering for the terminal

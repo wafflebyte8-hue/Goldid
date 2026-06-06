@@ -11,7 +11,7 @@ sandboxing, and TPM-backed protection of your API keys.
 This document describes **everything** about GolDid in detail: architecture,
 every module, every command, every tool, the prompt system, the security model,
 the on-disk layout, and the desktop app. It reflects the current code
-(version `0.13.1`).
+(version `0.13.2`).
 
 ---
 
@@ -96,8 +96,25 @@ change the location.
 
 ### Updating
 
-Re-run the same installer. Your `~/.goldid` data (config, keys, memories,
-sessions, skills) is left untouched.
+Use the built-in updater:
+
+```bash
+gd update check   # compare the running version with GitHub main
+gd update         # install only when a newer version exists
+gd update --force # rerun the installer even if versions look current
+```
+
+The updater checks the version in GitHub `main` through the GitHub Contents API
+and a cache-busted raw `package.json` fallback, then uses the highest semver it
+sees. This avoids the stale CDN result that can happen when only
+`raw.githubusercontent.com` is queried. If an old installed updater ever reports
+inconsistent results, run `gd update --force` once or rerun the installer
+manually.
+
+When an update is needed, GolDid reruns the platform installer into the current
+installation directory (`setup.ps1 -InstallDir <dir>` on Windows,
+`setup.sh --install-dir <dir>` on Linux/macOS). Your `~/.goldid` data (config,
+keys, memories, sessions, skills) is left untouched.
 
 ### Uninstalling (Windows)
 
@@ -180,6 +197,7 @@ GolDid/
     context.js       Project instruction discovery (GOLDID.md / AGENTS.md)
     skills.js        Skill discovery, parsing, rendering, scaffolding
     migrate.js       Hermes/OpenClaw migration
+    updater.js       Version checks and installer-backed updates
     ui.js            Terminal UI primitives (color, panels, menus, spinner)
     markdown.js      Markdown → ANSI rendering for the terminal
   setup.ps1/.sh      Installers/updaters
@@ -796,9 +814,11 @@ subcommands.
 | `/key <provider> [key]`        | Set a provider API key.                            |
 | `/url <provider> [url]`        | Set a provider base URL.                           |
 | `/agent [on\|off]`             | Enable/disable agent tools.                        |
+| `/mode [ask\|auto-edit\|auto\|plan]` | Show or set the approval mode.                     |
 | `/sandbox [off\|jail\|docker]` | Show or set tool sandboxing.                       |
 | `/image [model\|clear]`        | Set up image generation (provider + model wizard). |
 | `/keystore [migrate\|revert]`  | Show or change API-key protection (TPM).           |
+| `/update [check\|--force]`     | Check for or install the latest GolDid.            |
 | `/tools`                       | List the agent tools.                              |
 | `/soul`                        | Show/locate the `SOUL.md` personality file.        |
 | `/memory`                      | Show or edit persistent memory.                    |
@@ -830,30 +850,40 @@ same encrypted config, memories, skills, and sessions as the CLI.
 - **`main.js`** — Electron main process. Creates the window with
   `contextIsolation: true` and `nodeIntegration: false`. Registers IPC handlers:
   `app:snapshot`, `config:save`, `config:agent`, `config:sandbox`,
-  `config:imageModel`, `config:imageSetup`, `models:list`, `session:load`,
-  `session:delete`, `skill:view`, `path:open`, `chat:send`, and approval
-  responses. Runs the same unlimited agent loop as the CLI, applying the sandbox
-  and image helper in `runDesktopTool` and prompting for approval on dangerous
-  tools via a dialog.
+  `config:imageModel`, `config:imageSetup`, `models:list`, `update:check`,
+  `update:run`, `session:load`, `session:delete`, `skill:view`, `path:open`,
+  `chat:send`, and approval responses. Runs the same unlimited agent loop as the
+  CLI, applying the sandbox and image helper in `runDesktopTool` and prompting
+  for approval on dangerous tools via the inline approval bar.
 - **`preload.js`** — exposes a fixed, named `window.goldid` API surface via
   `contextBridge` (snapshot, saveConfig, setAgent, setSandbox, setImageModel,
   setImageConfig, listModels, loadSession, deleteSession, viewSkill, openPath,
-  sendChat, plus streaming/approval callbacks). Raw `ipcRenderer` is **not**
-  exposed.
+  sendChat, checkUpdate, runUpdate, plus streaming/approval callbacks). Raw
+  `ipcRenderer` is **not** exposed.
 - **`renderer.js`** — UI logic: status, sidebar (sessions/skills/memory),
-  message rendering, the `/` command menu, settings dialog, and the image
-  dialog. Assistant content is rendered through `marked` + `DOMPurify.sanitize`;
-  all other user/file-sourced strings go through `escapeHtml`.
+  message rendering, the `/` command menu, settings dialog, update/status
+  details, and the image dialog. Assistant content is rendered through `marked`
+  + `DOMPurify.sanitize`; all other user/file-sourced strings go through
+  `escapeHtml`. Detail dialogs are reused when already open so repeated status,
+  help, update, skill, or memory actions do not throw `showModal()` errors.
 
 ### Desktop commands
 
 Type `/` in the composer to open the command menu. Commands include `/new`,
 `/reset`, `/settings` (`/model`, `/providers`, `/config`), `/sessions`,
-`/skills`, `/memory`, `/agent on`, `/agent off`, `/sandbox off|jail|docker`,
-`/image`, `/tools`, `/clear`, and `/help`. `/sandbox <mode>` and `/image <model>`
-also work as typed commands with arguments; `/image` with no argument opens the
-Image dialog (provider dropdown showing which providers already have a key, a
-blank-to-reuse key field, and a model field with a "List models" button).
+`/skills`, `/memory`, `/agent on`, `/agent off`, `/mode ask|auto-edit|auto|plan`,
+`/sandbox off|jail|docker`, `/image`, `/update`, `/update check`, `/tools`,
+`/clear`, and `/help`. `/sandbox <mode>`, `/image <model>`, and
+`/update check|--force` also work as typed commands with arguments; `/image` with
+no argument opens the Image dialog (provider dropdown showing which providers
+already have a key, a blank-to-reuse key field, and a model field with a
+"List models" button).
+
+The desktop shell is designed around a dense work surface: a fixed left sidebar,
+scrollable transcript, command menu above the composer, 44px primary controls,
+visible keyboard focus rings, reduced-motion support, and responsive fallbacks
+for narrower windows. The topbar truncates long paths/titles instead of
+overflowing, and the dialogs keep their own scroll regions.
 
 Read-only tools run automatically; `shell`, `write_file`, and `generate_image`
 always show an approval dialog (rendering the exact arguments) first. The desktop
@@ -928,5 +958,5 @@ Keep `~/.goldid/sessions` private (it contains chat messages and tool results).
 
 ---
 
-_This documentation reflects GolDid `0.13.1`. Behavior described here is taken
+_This documentation reflects GolDid `0.13.2`. Behavior described here is taken
 from the source under `goldid.js`, `lib/`, and `desktop/`._
