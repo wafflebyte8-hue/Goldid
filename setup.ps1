@@ -93,7 +93,7 @@ try {
   } catch {
     throw "Could not create $InstallDir. Open PowerShell as Administrator or use -InstallDir with a writable path."
   }
-  foreach ($name in @('goldid.js', 'package.json', 'README.md', 'uninstall.ps1', 'desktop-launch.ps1', 'desktop', 'lib')) {
+  foreach ($name in @('goldid.js', 'package.json', 'README.md', 'documentation.md', 'setup.ps1', 'setup.sh', 'uninstall.ps1', 'desktop-launch.ps1', 'desktop-launch.sh', 'desktop', 'lib')) {
     $from = Join-Path $source.FullName $name
     if (-not (Test-Path -LiteralPath $from)) {
       throw "Required repository item is missing: $name"

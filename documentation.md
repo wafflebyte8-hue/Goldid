@@ -11,7 +11,7 @@ sandboxing, and TPM-backed protection of your API keys.
 This document describes **everything** about GolDid in detail: architecture,
 every module, every command, every tool, the prompt system, the security model,
 the on-disk layout, and the desktop app. It reflects the current code
-(version `0.13.2`).
+(version `0.13.3`).
 
 ---
 
@@ -113,8 +113,10 @@ manually.
 
 When an update is needed, GolDid reruns the platform installer into the current
 installation directory (`setup.ps1 -InstallDir <dir>` on Windows,
-`setup.sh --install-dir <dir>` on Linux/macOS). Your `~/.goldid` data (config,
-keys, memories, sessions, skills) is left untouched.
+`setup.sh --install-dir <dir>` on Linux/macOS). If the install directory does
+not contain the setup script, the updater downloads a fresh copy to a temporary
+file and runs that. Your `~/.goldid` data (config, keys, memories, sessions,
+skills) is left untouched.
 
 ### Uninstalling (Windows)
 
@@ -958,5 +960,5 @@ Keep `~/.goldid/sessions` private (it contains chat messages and tool results).
 
 ---
 
-_This documentation reflects GolDid `0.13.2`. Behavior described here is taken
+_This documentation reflects GolDid `0.13.3`. Behavior described here is taken
 from the source under `goldid.js`, `lib/`, and `desktop/`._

@@ -72,8 +72,10 @@ gd update
 
 `gd update` checks GitHub, reruns the installer only when a newer version exists,
 and leaves your settings, keys, memories, skills, and sessions under `~/.goldid`
-alone. If an old install gets confused by cached GitHub metadata, run
-`gd update --force` once. Running the installer manually still works too.
+alone. If the local install does not have `setup.ps1` or `setup.sh`, the updater
+downloads a fresh installer script to a temporary file and runs it. If an old
+install gets confused by cached GitHub metadata, run `gd update --force` once.
+Running the installer manually still works too.
 
 the desktop app shares the same encrypted config, memories, skills, and sessions
 as the CLI.
