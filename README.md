@@ -539,6 +539,7 @@ keys. never upload `config.json`, `key.bin`, or `key.tpm`.
 | `/sandbox [off\|jail\|docker]` | Confine tools to a directory or container  |
 | `/image [model]`               | Set up image generation (provider + model) |
 | `/keystore [migrate\|revert]`  | Show/change API-key protection (TPM)       |
+| `/update [check\|--force]`     | Check for or install the latest GolDid     |
 | `/tools`                       | List available tools                       |
 | `/soul`                        | Show the personality file                  |
 | `/memory`                      | Inspect or edit memory                     |

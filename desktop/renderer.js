@@ -48,6 +48,16 @@ function renderStatus() {
   $('activeModel').textContent = active.model || 'Open settings';
   $('connectionDot').classList.toggle('online', Boolean(provider && active.model));
   $('workingDirectory').textContent = state.snapshot.cwd;
+  $('modeSelect').value = state.snapshot.config.agent?.mode || 'ask';
+}
+
+async function setMode(mode) {
+  try {
+    state.snapshot.config = await window.goldid.setMode(mode);
+    renderStatus();
+  } catch (error) {
+    showNotice(error.message || String(error));
+  }
 }
 
 const commands = [
@@ -61,10 +71,16 @@ const commands = [
   { usage: '/memory', description: 'Show persistent memory', run: () => selectSidebarTab('memory') },
   { usage: '/agent on', description: 'Enable agent tools', run: () => setAgent(true) },
   { usage: '/agent off', description: 'Disable agent tools', run: () => setAgent(false) },
+  { usage: '/mode ask', description: 'Ask before edits', run: () => setMode('ask') },
+  { usage: '/mode auto-edit', description: 'Edit automatically', run: () => setMode('auto-edit') },
+  { usage: '/mode auto', description: 'Auto — model decides safety', run: () => setMode('auto') },
+  { usage: '/mode plan', description: 'Plan mode (read-only)', run: () => setMode('plan') },
   { usage: '/sandbox off', description: 'Disable tool sandboxing', run: () => setSandbox('off') },
   { usage: '/sandbox jail', description: 'Confine tools to the working directory', run: () => setSandbox('jail') },
   { usage: '/sandbox docker', description: 'Run shell in a Docker container', run: () => setSandbox('docker') },
   { usage: '/image', description: 'Set up image generation (provider + model)', run: () => openImageSettings() },
+  { usage: '/update', description: 'Install the latest GolDid', run: () => updateApp(false) },
+  { usage: '/update check', description: 'Check for GolDid updates', run: () => checkUpdate() },
   { usage: '/tools', description: 'Show desktop agent tools', run: () => showToolHelp() },
   { usage: '/clear', description: 'Clear the current desktop transcript', run: () => newChat() },
   { usage: '/config', description: 'Open provider configuration', run: () => openSettings() },
@@ -123,6 +139,38 @@ function showNotice(text) {
   $('detailTitle').textContent = 'GolDid';
   $('detailContent').textContent = text;
   $('detailDialog').showModal();
+}
+
+async function checkUpdate() {
+  try {
+    const status = await window.goldid.checkUpdate();
+    showNotice([
+      `Current: ${status.current}`,
+      `Latest:  ${status.latest}`,
+      status.updateAvailable ? 'Update available. Run /update to install it.' : 'GolDid is already up to date.',
+    ].join('\n'));
+  } catch (error) {
+    showNotice(error.message || String(error));
+  }
+}
+
+async function updateApp(force) {
+  showNotice('Checking for updates...');
+  try {
+    const result = await window.goldid.runUpdate({ force });
+    if (result.skipped) {
+      $('detailContent').textContent = result.output;
+      return;
+    }
+    $('detailContent').textContent = [
+      `Updated GolDid ${result.current} -> ${result.latest}.`,
+      'Restart GolDid to use the new files.',
+      '',
+      result.output || '',
+    ].join('\n').trim();
+  } catch (error) {
+    $('detailContent').textContent = error.message || String(error);
+  }
 }
 
 function showCommandHelp() {
@@ -185,6 +233,13 @@ async function executeTypedCommand(text) {
   const trimmed = text.trim();
   const normalized = trimmed.toLowerCase();
   // Parametric commands carry an argument the fixed menu entries can't.
+  const modeMatch = normalized.match(/^\/mode(?:\s+(\S+))?$/);
+  if (modeMatch) {
+    $('messageInput').value = '';
+    if (modeMatch[1]) await setMode(modeMatch[1]);
+    else showNotice('Current mode: ' + (state.snapshot.config.agent?.mode || 'ask') + '\n\nUse /mode ask | auto-edit | auto | plan.');
+    return true;
+  }
   const sbMatch = normalized.match(/^\/sandbox(?:\s+(\S+))?$/);
   if (sbMatch) { await setSandbox(sbMatch[1] || ''); $('messageInput').value = ''; return true; }
   const imgMatch = trimmed.match(/^\/image(?:\s+(.+))?$/i);
@@ -193,6 +248,14 @@ async function executeTypedCommand(text) {
     const arg = (imgMatch[1] || '').trim();
     if (!arg) openImageSettings();        // no arg → full dialog
     else await setImageModel(arg);        // /image <model> or /image clear → quick set
+    return true;
+  }
+  const updateMatch = normalized.match(/^\/update(?:\s+(\S+))?$/);
+  if (updateMatch) {
+    $('messageInput').value = '';
+    const arg = updateMatch[1] || '';
+    if (arg === 'check' || arg === 'status') await checkUpdate();
+    else await updateApp(arg === '--force' || arg === 'force');
     return true;
   }
   const command = commands.find((item) => item.usage === normalized);
@@ -616,6 +679,7 @@ $('settingsForm').addEventListener('submit', async (event) => {
   await refresh();
 });
 
+$('modeSelect').addEventListener('change', (event) => setMode(event.target.value));
 $('sandboxSelect').addEventListener('change', async (event) => {
   try {
     state.snapshot.config = await window.goldid.setSandbox(event.target.value);

@@ -33,7 +33,18 @@
           <h1 id="conversationTitle">New conversation</h1>
           <p id="workingDirectory"></p>
         </div>
-        <button id="openDataButton" class="secondary-button"><img src="icons/folder.svg" alt="">Open data folder</button>
+        <div class="topbar-actions">
+          <label class="mode-field" title="How edits and commands are approved">
+            <span>Mode</span>
+            <select id="modeSelect">
+              <option value="ask">Ask before edits</option>
+              <option value="auto-edit">Edit automatically</option>
+              <option value="auto">Auto (model decides)</option>
+              <option value="plan">Plan mode</option>
+            </select>
+          </label>
+          <button id="openDataButton" class="secondary-button"><img src="icons/folder.svg" alt="">Open data folder</button>
+        </div>
       </header>
       <section id="messages" class="messages" aria-live="polite">
         <div class="empty-state">

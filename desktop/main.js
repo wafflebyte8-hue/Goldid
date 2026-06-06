@@ -13,6 +13,10 @@ const projectContext = require('../lib/context');
 const tools = require('../lib/tools');
 const sandbox = require('../lib/sandbox');
 const keystore = require('../lib/keystore');
+const agentmode = require('../lib/agentmode');
+const updater = require('../lib/updater');
+
+const VERSION = '0.12.0';
 
 // The GolDid desktop app supports Windows and Linux only. On macOS, use the CLI.
 if (process.platform === 'darwin') {
@@ -81,6 +85,7 @@ function publicConfig() {
     active: cfg.active,
     agent: {
       tools: cfg.agent?.tools !== false,
+      mode: agentmode.getMode(cfg),
       sandbox: sandbox.mode(cfg),
       imageProvider: cfg.agent?.imageProvider || '',
       imageModel: cfg.agent?.imageModel || '',
@@ -170,9 +175,23 @@ ipcMain.handle('models:list', async (_, provider) => {
   return providers.fetchModels(provider, cfg.providers[provider] || {});
 });
 
+ipcMain.handle('config:mode', (_, mode) => {
+  const cfg = config.load();
+  const m = agentmode.MODES.includes(mode) ? mode : 'ask';
+  cfg.agent = { ...(cfg.agent || {}), mode: m };
+  config.save(cfg);
+  return publicConfig();
+});
+
 ipcMain.handle('keystore:status', () => keystore.status());
 ipcMain.handle('keystore:migrate', () => keystore.migrateToTpm());
 ipcMain.handle('keystore:revert', () => keystore.revertToPlaintext());
+ipcMain.handle('update:check', () => updater.check(VERSION));
+ipcMain.handle('update:run', (_, opts = {}) => updater.update({
+  currentVersion: VERSION,
+  rootDir: path.resolve(__dirname, '..'),
+  force: Boolean(opts.force),
+}));
 
 ipcMain.handle('session:load', (_, id) => sessions.load(id));
 ipcMain.handle('session:delete', (_, id) => sessions.remove(id));
@@ -223,7 +242,13 @@ async function runDesktopTool(sender, call, sessionId) {
     ctx.wrapShell = (command) => sandbox.wrapShell(command, cfg);
   }
 
-  if (tool.danger && !(await requestApproval(sender, call))) {
+  const mode = agentmode.getMode(cfg);
+  const decision = agentmode.decide(mode, call.name, !!tool.danger, call.args || {});
+  if (decision === 'block') {
+    sender.send('tool:status', { id, name: call.name, state: 'denied' });
+    return agentmode.blockedMessage(call.name);
+  }
+  if (decision === 'ask' && !(await requestApproval(sender, call))) {
     sender.send('tool:status', { id, name: call.name, state: 'denied' });
     return 'Denied by user.';
   }
@@ -257,6 +282,7 @@ ipcMain.handle('chat:send', async (event, input) => {
     kind: def.kind === 'cloud' || /:cloud\b/i.test(cfg.active.model) ? 'cloud' : 'local',
     soul: prompt.loadSoul(),
     toolsMode,
+    mode: agentmode.getMode(cfg),
     model: cfg.active.model,
     cwd: process.cwd(),
     memorySnapshot: memory.formatForPrompt({ includeEmpty: true }),

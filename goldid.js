@@ -21,11 +21,13 @@ const markdown = require('./lib/markdown');
 const prompt = require('./lib/prompt');
 const tools = require('./lib/tools');
 const sandbox = require('./lib/sandbox');
+const agentmode = require('./lib/agentmode');
 const memory = require('./lib/memory');
 const sessions = require('./lib/sessions');
 const projectContext = require('./lib/context');
 const skills = require('./lib/skills');
 const migrate = require('./lib/migrate');
+const updater = require('./lib/updater');
 
 const VERSION = '0.12.0';
 const TOOL_TAG = '<tool_call>';
@@ -168,6 +170,7 @@ function welcomeRows(cfg, width) {
     ui.kv('provider', statusValue(providerLabel)),
     ui.kv('model', statusValue(ui.clip(modelLabel, wide ? 52 : 32))),
     ui.kv('agent', agent),
+    ui.kv('mode', ui.amber(agentmode.getMode(cfg))),
     ui.kv('sandbox', sandbox.mode(cfg) === 'off' ? ui.dim('off') : ui.amber(sandbox.mode(cfg))),
     ui.kv('memory', ui.dim(memorySummary())),
     ui.kv('cwd', ui.dim(ui.clip(process.cwd(), wide ? 58 : 34))),
@@ -382,7 +385,13 @@ async function runTool(call, ctx) {
     ctx.wrapShell = (command) => sandbox.wrapShell(command, cfg);
     console.log(ui.dim(`  ${ui.symbols.hook} sandbox: ${sbMode}`));
   }
-  if (tool.danger) {
+  const mode = agentmode.getMode(cfg);
+  const decision = agentmode.decide(mode, call.name, !!tool.danger, call.args || {});
+  if (decision === 'block') {
+    ui.info(`plan mode - not running ${call.name}`);
+    return agentmode.blockedMessage(call.name);
+  }
+  if (decision === 'ask') {
     if (!process.stdin.isTTY) {
       ui.warning('skipped - needs approval but no interactive terminal');
       return 'Denied: this tool requires interactive user approval, which is unavailable here.';
@@ -392,6 +401,8 @@ async function runTool(call, ctx) {
       ui.info('denied');
       return 'Denied by user.';
     }
+  } else if (tool.danger && mode !== 'ask') {
+    console.log(ui.dim(`  ${ui.symbols.hook} auto-approved (${mode})`));
   }
   const spin = ui.spinner('running ' + call.name);
   try {
@@ -425,6 +436,7 @@ async function handleChat(text, conversation, ctx) {
     kind: modelClass(def, cfg.active.model),
     soul: prompt.loadSoul(),
     toolsMode,
+    mode: agentmode.getMode(cfg),
     model: cfg.active.model,
     cwd: process.cwd(),
     memorySnapshot,
@@ -922,6 +934,26 @@ function sandboxCmd(args) {
  * image model. Stored separately at cfg.agent.imageProvider/imageModel so image
  * generation can use a different provider than the chat model.
  */
+function modeCmd(args) {
+  const cfg = config.load();
+  const cur = agentmode.getMode(cfg);
+  const a = (args[0] || '').toLowerCase().replace(/\s+/g, '-');
+  if (!a) {
+    ui.kv('mode', ui.amber(cur) + ui.dim(' - ' + agentmode.MODE_LABELS[cur]));
+    ui.info('change with /mode ' + agentmode.MODES.join(' | '));
+    ui.info('ask = approve each edit · auto-edit = run freely · auto = model judges safety · plan = read-only plan');
+    return;
+  }
+  if (!agentmode.MODES.includes(a)) {
+    ui.warning(`Unknown mode: ${a}`);
+    ui.info('choose one of: ' + agentmode.MODES.join(', '));
+    return;
+  }
+  cfg.agent = { ...(cfg.agent || {}), mode: a };
+  config.save(cfg);
+  ui.success(`Mode: ${a} - ${agentmode.MODE_LABELS[a]}.`);
+}
+
 async function imageCmd(args, ctx) {
   const cfg = config.load();
   const a = (args[0] || '').trim();
@@ -1060,6 +1092,34 @@ function toolsCmd() {
   console.log('');
 }
 
+async function updateCmd(args) {
+  const action = (args[0] || '').toLowerCase();
+  const force = args.includes('--force') || args.includes('force');
+  try {
+    if (action === 'check' || action === 'status') {
+      const status = await updater.check(VERSION);
+      ui.panel([
+        ui.kv('current', ui.dim(status.current)),
+        ui.kv('latest', status.updateAvailable ? ui.amber(status.latest) : ui.color.green(status.latest)),
+        ui.kv('update', status.updateAvailable ? ui.amber('available - run /update') : ui.color.green('already current')),
+      ], { title: ui.gold('Updates'), maxWidth: 72 });
+      console.log('');
+      return;
+    }
+
+    ui.info('Checking for GolDid updates...');
+    const result = await updater.update({ currentVersion: VERSION, rootDir: __dirname, force });
+    if (result.skipped) {
+      ui.success(result.output);
+      return;
+    }
+    ui.success(`Updated GolDid ${result.current} -> ${result.latest}. Restart GolDid to use the new files.`);
+    if (result.output) console.log(ui.dim(result.output.split(/\r?\n/).slice(-8).join('\n')));
+  } catch (error) {
+    ui.error(error.message || String(error));
+  }
+}
+
 function printHelp() {
   const rows = [
     ['/setup [provider]', 'pick a provider, add a key/URL, choose a model'],
@@ -1070,9 +1130,11 @@ function printHelp() {
     ['/key <provider> [k]', 'set a provider API key'],
     ['/url <provider> [u]', 'set a provider base URL'],
     ['/agent [on|off]', 'toggle tool use (the agent)'],
+    ['/mode [ask|auto-edit|auto|plan]', 'how edits are approved'],
     ['/sandbox [mode]', 'confine tools: off | jail | docker'],
     ['/image', 'set up image generation (provider + model)'],
     ['/keystore [migrate]', 'show or change API-key protection (TPM)'],
+    ['/update [check|--force]', 'check for or install the latest GolDid'],
     ['/tools', 'list the agent tools'],
     ['/soul', 'show/locate the SOUL.md personality file'],
     ['/memory', 'show or edit persistent memory'],
@@ -1128,9 +1190,11 @@ const slash = {
   key: { run: (args, ctx) => setKey(args, ctx) },
   url: { run: (args, ctx) => setUrl(args, ctx) },
   agent: { run: (args) => agentCmd(args) },
+  mode: { run: (args) => modeCmd(args) },
   sandbox: { run: (args) => sandboxCmd(args) },
   image: { run: (args, ctx) => imageCmd(args, ctx) },
   keystore: { run: (args) => keystoreCmd(args) },
+  update: { run: (args) => updateCmd(args) },
   tools: { run: () => toolsCmd() },
   soul: { run: () => soulCmd() },
   memory: { run: (args, ctx) => memoryCmd(args, ctx) },
@@ -1333,7 +1397,8 @@ function repl(ctx) {
 
 const UTILITY = new Set([
   'setup', 'use', 'model', 'models', 'providers', 'key', 'url',
-  'agent', 'sandbox', 'image', 'keystore', 'tools', 'soul', 'memory', 'remember', 'forget', 'config',
+  'agent', 'mode', 'sandbox', 'image', 'keystore', 'tools', 'soul', 'memory', 'remember', 'forget', 'config',
+  'update',
   'sessions', 'session', 'resume', 'delete-session',
   'skills', 'skill',
   'migrate',
@@ -1373,4 +1438,8 @@ async function main() {
   }
 }
 
-main();
+if (require.main === module) {
+  main();
+}
+
+module.exports = { main };

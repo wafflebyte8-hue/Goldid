@@ -187,6 +187,26 @@ dialog footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 
 .sidebar-footer { cursor: pointer; }
 .sidebar-footer:hover { background: #ffffff05; }
 
+/* Topbar agent-mode selector */
+.topbar-actions { display: flex; align-items: center; gap: 12px; }
+.mode-field { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); font-size: 12px; }
+.mode-field span { text-transform: uppercase; letter-spacing: .04em; }
+.mode-field select { height: 36px; border: 1px solid var(--line); border-radius: 5px; background: #141411; color: var(--text); padding: 0 28px 0 10px; font-size: 13px; outline: 0; cursor: pointer; transition: border-color 160ms ease, box-shadow 160ms ease; appearance: none; background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%); background-position: calc(100% - 16px) 15px, calc(100% - 11px) 15px; background-size: 5px 5px, 5px 5px; background-repeat: no-repeat; }
+.mode-field select:hover { border-color: #5a5747; }
+.mode-field select:focus { border-color: var(--gold); box-shadow: 0 0 0 3px #d8ad4a12; }
+
+/* --- extra animations --- */
+/* Blinking caret on the streaming assistant message */
+body.is-streaming .message.assistant:last-of-type .message-text::after { content: '▍'; color: var(--gold); margin-left: 1px; animation: caret-blink 1s steps(1) infinite; }
+/* Generated images pop in */
+.gen-image img { animation: image-pop 280ms var(--ease-spring) both; }
+/* Approval glow pulses to draw the eye */
+.composer:has(> .approval-bar:not([hidden])) { animation: approval-pulse 1.8s ease-in-out infinite; }
+/* Copy button confirm pop */
+.copy-btn:active { transform: scale(.9); }
+/* Tool events lift slightly as they update */
+.tool-event.complete img { animation: tool-done 320ms var(--ease-out) both; }
+
 body.is-streaming .send-button img { animation: stream-arrow 900ms ease-in-out infinite; }
 body.is-streaming .message.assistant:last-of-type .avatar { animation: assistant-pulse 1.4s ease-in-out infinite; }
 
@@ -205,6 +225,10 @@ body.is-streaming .message.assistant:last-of-type .avatar { animation: assistant
 @keyframes assistant-pulse { 0%, 100% { box-shadow: 0 0 0 0 #d8ad4a00; } 50% { box-shadow: 0 0 0 5px #d8ad4a18; } }
 @keyframes command-enter { from { opacity: 0; transform: translateY(6px) scale(.99); } to { opacity: 1; transform: translateY(0) scale(1); } }
 @keyframes approval-expand { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes caret-blink { 0%, 50% { opacity: 1; } 50.01%, 100% { opacity: 0; } }
+@keyframes image-pop { from { opacity: 0; transform: scale(.92); } to { opacity: 1; transform: scale(1); } }
+@keyframes approval-pulse { 0%, 100% { box-shadow: 0 0 0 3px #d8ad4a12; } 50% { box-shadow: 0 0 0 5px #d8ad4a22; } }
+@keyframes tool-done { from { transform: scale(.6); opacity: .4; } to { transform: scale(1); opacity: 1; } }
 @media (max-width: 1000px) { .app-shell { grid-template-columns: 250px 1fr; } .topbar { padding-inline: 18px; } }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; scroll-behavior: auto !important; }
