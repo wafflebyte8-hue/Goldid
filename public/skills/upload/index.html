@@ -20,13 +20,17 @@
     <section class="skill-hero">
       <p class="eyebrow">Skill upload</p>
       <h1>Validate two files.</h1>
-      <p class="lead">Upload `SKILL.md` and `Version.js` to check that a skill package is ready for GolDid. Static Firebase Hosting cannot publish visitor uploads automatically, so this page validates the files and shows the registry entry to submit.</p>
+      <p class="lead">Upload `SKILL.md` and `Version.js` to check that a skill package is ready for GolDid. If it passes, email both files for moderation. Approved skills are added to the public registry.</p>
       <form class="upload-form" id="skillUploadForm">
         <label>SKILL.md<input id="skillFile" type="file" accept=".md,text/markdown,text/plain" required></label>
         <label>Version.js<input id="versionFile" type="file" accept=".js,text/javascript,text/plain" required></label>
         <button class="button primary" type="submit">Validate skill</button>
       </form>
       <pre id="uploadResult"><code>Choose both files to begin.</code></pre>
+      <div id="emailAction" class="hero-actions" hidden>
+        <a id="emailLink" class="button primary" href="mailto:wafflebyte8@gmail.com">Email for review</a>
+        <a class="button secondary" href="/skills/">Back to skills</a>
+      </div>
     </section>
   </main>
   <script>
@@ -64,10 +68,12 @@
       if (!name) problems.push('Version.js needs Name, or SKILL.md needs name.');
       if (!description) problems.push('Version.js needs Description, or SKILL.md needs description.');
       if (!author) problems.push('Version.js needs Author, or SKILL.md needs author.');
-      const id = name ? name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 48) : 'your-skill-id';
+      const slug = name ? name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 48) : 'your-skill-slug';
+      const id = String(Math.floor(1000 + Math.random() * 9000));
       const entry = {
         id,
         name,
+        slug,
         description,
         author,
         version: semver,
@@ -76,9 +82,52 @@
         skillUrl: `/skills/${id}/SKILL.md`,
         versionUrl: `/skills/${id}/Version.js`
       };
-      document.getElementById('uploadResult').textContent = problems.length
-        ? 'Fix these before submitting:\\n- ' + problems.join('\\n- ')
-        : 'Looks ready. Add these files under public/skills/' + id + '/ and add this to registry.json:\\n\\n' + JSON.stringify(entry, null, 2);
+      const result = document.getElementById('uploadResult');
+      const emailAction = document.getElementById('emailAction');
+      const emailLink = document.getElementById('emailLink');
+      if (problems.length) {
+        emailAction.hidden = true;
+        result.textContent = 'Fix these before submitting:\\n- ' + problems.join('\\n- ');
+        return;
+      }
+      const subject = `[GolDid Skill Submission] ${id}`;
+      const body = [
+        'Please review this GolDid skill for the public registry.',
+        '',
+        'Proposed 4-digit skill id: ' + id,
+        'Suggested slug: ' + slug,
+        '',
+        'Attach both files to this email:',
+        '- SKILL.md',
+        '- Version.js',
+        '',
+        'Proposed registry entry:',
+        JSON.stringify(entry, null, 2),
+        '',
+        'Moderation note:',
+        'Only approved skills are uploaded to the public website and registry.',
+        'The final 4-digit id is assigned during moderation if this proposed id is already taken.'
+      ].join('\\n');
+      emailLink.href = `mailto:wafflebyte8@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+      emailAction.hidden = false;
+      result.textContent = [
+        'Looks ready.',
+        '',
+        'Email this skill for moderation:',
+        'To: wafflebyte8@gmail.com',
+        'Subject: ' + subject,
+        'Proposed 4-digit id: ' + id,
+        'Suggested slug: ' + slug,
+        '',
+        'Attach both files:',
+        '- SKILL.md',
+        '- Version.js',
+        '',
+        'Registry entry for review:',
+        JSON.stringify(entry, null, 2),
+        '',
+        'If the proposed id is already taken, moderation will assign a different 4-digit id.'
+      ].join('\\n');
     });
   </script>
 </body>

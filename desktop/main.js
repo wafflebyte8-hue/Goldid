@@ -16,7 +16,7 @@ const keystore = require('../lib/keystore');
 const agentmode = require('../lib/agentmode');
 const updater = require('../lib/updater');
 
-const VERSION = '0.15.6';
+const VERSION = '0.15.8';
 
 // The GolDid desktop app supports Windows and Linux only. On macOS, use the CLI.
 if (process.platform === 'darwin') {
