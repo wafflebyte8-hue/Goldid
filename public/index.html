@@ -36,6 +36,12 @@
           <a class="button primary" href="#install">Install GolDid</a>
           <a class="button secondary" href="https://github.com/wafflebyte8-hue/Goldid">View source</a>
         </div>
+        <div class="release-strip" aria-label="Current release highlights">
+          <span>v0.16.0</span>
+          <span>Expanded cloud/local system prompts</span>
+          <span>Linux desktop GTK launch fix</span>
+          <span>Linux/macOS uninstaller</span>
+        </div>
       </div>
     </section>
 
@@ -53,7 +59,7 @@
         <article class="install-card">
           <h3>Linux and macOS</h3>
           <pre><code>curl -fsSL https://raw.githubusercontent.com/wafflebyte8-hue/Goldid/main/setup.sh | bash</code></pre>
-          <p>Installs the CLI on Linux and macOS. Linux also gets the desktop app and app-menu entry.</p>
+          <p>Installs the CLI on Linux and macOS. Linux also gets the desktop app and app-menu entry. Remove it later with `~/.local/share/goldid/uninstall.sh`.</p>
         </article>
         <article class="install-card">
           <h3>Update</h3>
@@ -138,7 +144,7 @@ gd update --force</code></pre>
       <div class="desktop-copy">
         <p class="eyebrow">Desktop</p>
         <h2>A focused Electron shell for the same GolDid core.</h2>
-        <p>The desktop app shares config, memory, sessions, skills, providers, sandbox settings, image setup, and update checks with the CLI. It adds Markdown rendering, a command menu, settings dialogs, sidebar browsing, and inline tool approvals.</p>
+        <p>The desktop app shares config, memory, sessions, skills, providers, sandbox settings, image setup, and update checks with the CLI. It adds Markdown rendering, a command menu, settings dialogs, sidebar browsing, and inline tool approvals. Linux launchers now force GTK 3 and write startup failures to `~/.goldid/desktop.log`.</p>
       </div>
       <div class="app-frame" aria-label="GolDid desktop preview">
         <div class="frame-sidebar">
@@ -170,7 +176,7 @@ gd update --force</code></pre>
   </main>
 
   <footer>
-    <span>GolDid 0.15.9</span>
+    <span>GolDid 0.16.0</span>
     <a href="https://github.com/wafflebyte8-hue/Goldid">GitHub</a>
   </footer>
 </body>

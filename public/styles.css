@@ -139,6 +139,28 @@ h3 {
   gap: 12px;
   margin-top: 30px;
 }
+.release-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 26px;
+}
+.release-strip span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0 10px;
+  background: #151c28;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+.release-strip span:first-child {
+  border-color: #8d6b30;
+  color: var(--gold-strong);
+}
 .button {
   min-height: 48px;
   display: inline-flex;
