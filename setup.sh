@@ -50,12 +50,12 @@ source_dir="$(find "$tmp_root/source" -mindepth 1 -maxdepth 1 -type d | head -n 
 
 step "Installing to $INSTALL_DIR..."
 mkdir -p "$INSTALL_DIR" || die "Could not create $INSTALL_DIR. Choose a writable path with --install-dir."
-for name in goldid.js package.json README.md documentation.md firebase.json setup.ps1 setup.sh uninstall.ps1 desktop-launch.ps1 desktop-launch.sh desktop public lib; do
+for name in goldid.js package.json README.md documentation.md firebase.json setup.ps1 setup.sh uninstall.ps1 uninstall.sh desktop-launch.ps1 desktop-launch.sh desktop public lib; do
   [ -e "$source_dir/$name" ] || die "Required repository item is missing: $name"
   rm -rf "${INSTALL_DIR:?}/$name"
   cp -R "$source_dir/$name" "$INSTALL_DIR/$name"
 done
-chmod +x "$INSTALL_DIR/goldid.js" "$INSTALL_DIR/desktop-launch.sh" 2>/dev/null || true
+chmod +x "$INSTALL_DIR/goldid.js" "$INSTALL_DIR/desktop-launch.sh" "$INSTALL_DIR/uninstall.sh" 2>/dev/null || true
 
 if [ "$is_mac" -eq 1 ]; then
   step 'Installing CLI dependencies (skipping desktop runtime on macOS)...'

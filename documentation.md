@@ -118,13 +118,25 @@ not contain the setup script, the updater downloads a fresh copy to a temporary
 file and runs that. Your `~/.goldid` data (config, keys, memories, sessions,
 skills) is left untouched.
 
-### Uninstalling (Windows)
+### Uninstalling
 
 ```powershell
 & C:\goldid\uninstall.ps1            # keeps personal data
 & C:\goldid\uninstall.ps1 -RemoveData # also removes ~/.goldid
 & C:\goldid\uninstall.ps1 -Yes        # non-interactive
 ```
+
+On Linux and macOS:
+
+```bash
+~/.local/share/goldid/uninstall.sh                 # keeps personal data
+~/.local/share/goldid/uninstall.sh --remove-data   # also removes ~/.goldid
+~/.local/share/goldid/uninstall.sh --yes           # non-interactive
+```
+
+The POSIX uninstaller removes the `gd` and `goldid` shims, shell profile
+registration blocks, the Linux app-menu entry, and the app install directory. It
+keeps personal data under `~/.goldid` unless `--remove-data` is passed.
 
 ### Local development
 
@@ -218,7 +230,7 @@ GolDid/
     ui.js            Terminal UI primitives (colors, panels, menus, spinner)
     markdown.js      Markdown → ANSI rendering for the terminal
   setup.ps1/.sh      Installers/updaters
-  uninstall.ps1      Windows uninstaller
+  uninstall.ps1/.sh  Uninstallers
   desktop-launch.*   Desktop runtime launchers
   package.json
 ```

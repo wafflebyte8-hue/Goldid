@@ -91,7 +91,7 @@ as the CLI.
 
 ### Uninstall
 
-run the uninstaller:
+Windows:
 
 ```powershell
 & C:\goldid\uninstall.ps1
@@ -108,6 +108,22 @@ want it ALL gone, data included:
 ```
 
 add `-Yes` if you don't want to be asked.
+
+Linux and macOS:
+
+```bash
+~/.local/share/goldid/uninstall.sh
+```
+
+It removes `gd`/`goldid` shims, the shell profile block, the Linux app-menu
+entry, and the app files. It keeps `~/.goldid` by default. To remove personal
+data too:
+
+```bash
+~/.local/share/goldid/uninstall.sh --remove-data
+```
+
+Add `--yes` if you do not want to be asked.
 
 ## First run
 
@@ -601,6 +617,7 @@ GolDid/
   setup.ps1        Windows installer and updater
   setup.sh         Linux/macOS installer and updater
   uninstall.ps1    Windows uninstaller
+  uninstall.sh     Linux/macOS uninstaller
   desktop-launch.ps1  Desktop runtime launcher (Windows)
   desktop-launch.sh   Desktop runtime launcher (Linux)
   goldid.js        CLI, chat loop, commands, and setup wizard
