@@ -902,8 +902,12 @@ already have a key, a blank-to-reuse key field, and a model field with a
 The desktop shell is designed around a dense work surface: a fixed left sidebar,
 scrollable transcript, command menu above the composer, 44px primary controls,
 visible keyboard focus rings, reduced-motion support, and responsive fallbacks
-for narrower windows. The topbar truncates long paths/titles instead of
-overflowing, and the dialogs keep their own scroll regions.
+for narrower windows. The current visual system uses neutral dark surfaces with
+restrained gold accents, clearer borders, sharper message panels, and the
+original GolDid logo. The Windows `.ico` is generated from the original logo as
+a multi-size 32-bit ICO so smaller shell/taskbar sizes keep better color
+fidelity. The topbar truncates long paths/titles instead of overflowing, and the
+dialogs keep their own scroll regions.
 
 Read-only tools run automatically; `shell`, `write_file`, and `generate_image`
 always show an approval dialog (rendering the exact arguments) first. The desktop
