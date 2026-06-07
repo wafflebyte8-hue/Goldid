@@ -11,7 +11,7 @@ sandboxing, and TPM-backed protection of your API keys.
 This document describes **everything** about GolDid in detail: architecture,
 every module, every command, every tool, the prompt system, the security model,
 the on-disk layout, and the desktop app. It reflects the current code
-(version `0.15.8`).
+(version `0.15.9`).
 
 ---
 
@@ -134,6 +134,14 @@ npm start          # run the CLI (node goldid.js)
 npm run desktop    # run the Electron desktop app
 ```
 
+`npm run desktop` runs `desktop/launch.js` instead of calling Electron directly.
+That launcher removes `ELECTRON_RUN_AS_NODE` from the environment before
+starting Electron, which prevents Electron from accidentally running the app as
+plain Node. On Linux it also passes `--no-sandbox` by default, because per-user
+installs usually cannot provide Electron's root-owned setuid Chromium sandbox.
+Set `GOLDID_ELECTRON_SANDBOX=1` if the host has a correctly configured Electron
+sandbox and you want to use it.
+
 ---
 
 ## 3. Running GolDid (CLI)
@@ -154,10 +162,10 @@ The entry point is `goldid.js`. Its `main()` function:
 gd
 ```
 
-Shows a gold welcome banner (session status, agent tools, providers, quick
-commands), then a prompt. Type a message to chat, or a `/command` to run a slash
-command. The REPL guards against re-entrancy (it ignores new input while a turn
-is in progress).
+Shows a clean ASCII welcome panel with session status, agent tools, providers,
+and quick commands, then the `gd ❯` prompt. Type a message to chat, or a
+`/command` to run a slash command. The REPL guards against re-entrancy (it
+ignores new input while a turn is in progress).
 
 ### One-shot mode
 
@@ -182,12 +190,13 @@ GolDid/
   firebase.json      Firebase Hosting config for the static website
   public/            Static website assets
   desktop/           Electron desktop application
+    launch.js        npm-run launcher: cleans Electron env and Linux sandbox flags
     main.js          Electron main process: window, IPC handlers, agent loop
     preload.js       contextBridge: the window.goldid API surface
     renderer.js      UI logic: rendering, commands, dialogs, streaming
     index.html       Desktop markup (dialogs, composer, sidebar)
     styles.css       Desktop styling
-    assets/          App logo
+    assets/          App logo and multi-size ICO
     icons/           UI icons
   lib/
     config.js        Encrypted configuration storage
@@ -202,7 +211,7 @@ GolDid/
     skills.js        Skill discovery, parsing, rendering, scaffolding
     migrate.js       Hermes/OpenClaw migration
     updater.js       Version checks and installer-backed updates
-    ui.js            Terminal UI primitives (color, panels, menus, spinner)
+    ui.js            Terminal UI primitives (colors, panels, menus, spinner)
     markdown.js      Markdown → ANSI rendering for the terminal
   setup.ps1/.sh      Installers/updaters
   uninstall.ps1      Windows uninstaller
@@ -853,6 +862,11 @@ same encrypted config, memories, skills, and sessions as the CLI.
 
 ### Structure
 
+- **`launch.js`** - local-development launcher used by `npm run desktop`.
+  It starts Electron with a clean environment, removes `ELECTRON_RUN_AS_NODE`,
+  and applies the Linux `--no-sandbox` default unless
+  `GOLDID_ELECTRON_SANDBOX=1` is set.
+
 - **`main.js`** — Electron main process. Creates the window with
   `contextIsolation: true` and `nodeIntegration: false`. Registers IPC handlers:
   `app:snapshot`, `config:save`, `config:agent`, `config:sandbox`,
@@ -964,5 +978,5 @@ Keep `~/.goldid/sessions` private (it contains chat messages and tool results).
 
 ---
 
-_This documentation reflects GolDid `0.15.8`. Behavior described here is taken
+_This documentation reflects GolDid `0.15.9`. Behavior described here is taken
 from the source under `goldid.js`, `lib/`, and `desktop/`._

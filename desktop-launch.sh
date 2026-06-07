@@ -19,4 +19,10 @@ if [ ! -x "$electron" ]; then
 fi
 
 unset ELECTRON_RUN_AS_NODE
-exec "$electron" "$main"
+args=()
+if [ "${GOLDID_ELECTRON_SANDBOX:-0}" != "1" ]; then
+  # Electron's Chromium sandbox often cannot initialize from a per-user install
+  # because chrome-sandbox is not root-owned with the setuid bit.
+  args+=(--no-sandbox)
+fi
+exec "$electron" "${args[@]}" "$main"

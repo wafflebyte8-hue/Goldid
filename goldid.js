@@ -29,7 +29,7 @@ const skills = require('./lib/skills');
 const migrate = require('./lib/migrate');
 const updater = require('./lib/updater');
 
-const VERSION = '0.15.8';
+const VERSION = '0.15.9';
 const TOOL_TAG = '<tool_call>';
 
 const toolsEnabled = (cfg) => cfg.agent?.tools !== false; // default on
@@ -70,27 +70,27 @@ function loadConversationMemory(ctx) {
 }
 
 // =============================================================================
-// Welcome banner (Hermes-inspired gold panel)
+// Welcome banner
 // =============================================================================
 
 const LOGO = [
-  '   ____       _ ____  _     _ ',
+  '   ____       _ ____  _     _',
   '  / ___| ___ | |  _ \\(_) __| |',
   ' | |  _ / _ \\| | | | | |/ _` |',
   ' | |_| | (_) | | |_| | | (_| |',
   '  \\____|\\___/|_|____/|_|\\__,_|',
 ];
-const LOGO_GRAD = [ui.gold, ui.gold, ui.amber, ui.amber, ui.bronze];
+const LOGO_GRAD = [ui.gold, ui.gold, ui.amber, ui.amber, ui.mutedGold];
 
 const HERO = [
-  '  ██████╗  ██████╗ ██╗     ██████╗ ██╗██████╗ ',
-  ' ██╔════╝ ██╔═══██╗██║     ██╔══██╗██║██╔══██╗',
-  ' ██║  ███╗██║   ██║██║     ██║  ██║██║██║  ██║',
-  ' ██║   ██║██║   ██║██║     ██║  ██║██║██║  ██║',
-  ' ╚██████╔╝╚██████╔╝███████╗██████╔╝██║██████╔╝',
-  '  ╚═════╝  ╚═════╝ ╚══════╝╚═════╝ ╚═╝╚═════╝ ',
+  '   ____       _ ____  _     _',
+  '  / ___| ___ | |  _ \\(_) __| |',
+  ' | |  _ / _ \\| | | | | |/ _` |',
+  ' | |_| | (_) | | |_| | | (_| |',
+  '  \\____|\\___/|_|____/|_|\\__,_|',
+  '  terminal-first agent workspace',
 ];
-const HERO_GRAD = [ui.gold, ui.gold, ui.amber, ui.amber, ui.bronze, ui.bronze];
+const HERO_GRAD = [ui.gold, ui.gold, ui.amber, ui.amber, ui.mutedGold, ui.mutedGold];
 
 function statusValue(value) {
   return value ? ui.gold(value) : ui.dim('not configured');
@@ -162,7 +162,7 @@ function welcomeRows(cfg, width) {
   const providerLabel = providerDef?.label || activeProvider || 'not configured';
   const modelLabel = cfg.active.model || '';
   const agent = toolsEnabled(cfg)
-    ? ui.amber('on') + ui.dim(` - ${Object.keys(tools.TOOLS).length} tools`)
+    ? ui.amber('on') + ui.dim(`  ${Object.keys(tools.TOOLS).length} tools`)
     : ui.dim('off');
 
   const session = [
@@ -199,7 +199,7 @@ function welcomeRows(cfg, width) {
     rows.push(...session, '', ...right);
   }
 
-  const bar = ui.bronze(ui.symbols.h.repeat(contentWidth));
+  const bar = ui.mutedGold(ui.symbols.h.repeat(contentWidth));
   const sep = ui.dim(' | ');
   const statusTail = contentWidth >= 96
     ? [ui.dim('tools ' + (toolsEnabled(cfg) ? 'on' : 'off')), ui.dim('/help commands'), ui.dim('/exit quit')]
@@ -225,7 +225,7 @@ function welcome(cfg) {
 }
 
 function promptStr() {
-  return ui.amber(ui.symbols.prompt + ' ');
+  return ui.gold('gd') + ui.dim(' ' + ui.symbols.prompt + ' ');
 }
 
 // =============================================================================
@@ -1135,7 +1135,7 @@ async function updateCmd(args) {
 
 function printHelp() {
   const rows = [
-    ['/setup [provider]', 'pick a provider, add a key/URL, choose a model'],
+    ['/setup [provider]', 'configure provider, key/URL, and model'],
     ['/use <provider>', 'switch provider (then choose a model)'],
     ['/model [name]', 'show or set the active model'],
     ['/models [provider]', 'list available models'],
@@ -1145,11 +1145,11 @@ function printHelp() {
     ['/agent [on|off]', 'toggle tool use (the agent)'],
     ['/mode [ask|auto-edit|auto|plan]', 'how edits are approved'],
     ['/sandbox [mode]', 'confine tools: off | jail | docker'],
-    ['/image', 'set up image generation (provider + model)'],
-    ['/keystore [migrate]', 'show or change API-key protection (TPM)'],
+    ['/image', 'configure image generation'],
+    ['/keystore [migrate]', 'show or change key protection'],
     ['/update [check|--force]', 'check for or install the latest GolDid'],
     ['/tools', 'list the agent tools'],
-    ['/soul', 'show/locate the SOUL.md personality file'],
+    ['/soul', 'show the SOUL.md personality file'],
     ['/memory', 'show or edit persistent memory'],
     ['/sessions [query]', 'list or search saved conversations'],
     ['/session [name]', 'show or name the current session'],
@@ -1401,7 +1401,7 @@ function repl(ctx) {
       });
       rl.on('close', () => {
         ui.resetScrollRegion();
-        console.log(ui.bronze('\n' + ui.symbols.goodbye + ' goodbye'));
+        console.log(ui.mutedGold('\n' + ui.symbols.goodbye + ' goodbye'));
         resolve();
       });
     })();

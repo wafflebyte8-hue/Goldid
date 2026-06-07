@@ -80,6 +80,15 @@ Running the installer manually still works too.
 the desktop app shares the same encrypted config, memories, skills, and sessions
 as the CLI.
 
+### What's new in 0.15.9
+
+- refreshed the CLI, desktop app, and website with the same cleaner dark UI
+- replaced the broken large CLI banner with a clean ASCII startup panel
+- changed the CLI prompt to `gd ❯`
+- fixed `npm run desktop` when `ELECTRON_RUN_AS_NODE` is set
+- fixed Linux desktop startup by launching Electron with `--no-sandbox` by default
+- rebuilt `goldid-logo.ico` from the original logo as a multi-size 32-bit ICO
+
 ### Uninstall
 
 run the uninstaller:
@@ -111,8 +120,8 @@ first time you run `gd` it asks you to:
 after that just type:
 
 ```text
-❯ explain async/await in one sentence
-◆ async/await lets you write asynchronous code that reads like synchronous code.
+gd ? explain async/await in one sentence
+? async/await lets you write asynchronous code that reads like synchronous code.
 ```
 
 or fire a one-off prompt without sitting in the chat:
@@ -153,6 +162,12 @@ dev it locally (Windows or Linux):
 npm install
 npm run desktop
 ```
+
+`npm run desktop` uses `desktop/launch.js`, which strips `ELECTRON_RUN_AS_NODE`
+before starting Electron. On Linux, the launcher passes `--no-sandbox` by
+default because per-user installs usually cannot provide Electron's setuid
+Chromium sandbox. If you have configured the sandbox yourself, launch with
+`GOLDID_ELECTRON_SANDBOX=1`.
 
 ## What it can do
 
@@ -588,6 +603,7 @@ GolDid/
   desktop-launch.sh   Desktop runtime launcher (Linux)
   goldid.js        CLI, chat loop, commands, and setup wizard
   desktop/         Electron desktop application
+    launch.js      npm-run launcher for Electron
     assets/        GolDid app logo
   public/          Static website ready for Firebase Hosting
   lib/
@@ -603,7 +619,7 @@ GolDid/
     migrate.js     Combined Hermes/OpenClaw migration
     updater.js     Version checks and installer-backed updates
     tools.js       Agent tools
-    ui.js          Terminal interface
+    ui.js          Terminal interface colors, panels, menus, and spinner
     markdown.js    Markdown to ANSI rendering for the terminal
   package.json
 ```
