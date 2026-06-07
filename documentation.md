@@ -358,6 +358,14 @@ Key functions:
 - `IMAGE_PROVIDERS` / `DEFAULT_IMAGE_MODEL` — image-capable providers and their
   default image models.
 
+Timeouts:
+
+- Model-list fetches default to 15 seconds.
+- Cloud chat and streaming requests default to 2 minutes.
+- Local chat and streaming requests default to 30 minutes, giving slower Ollama,
+  vLLM, and LM Studio models time to finish.
+- Image generation requests default to 2 minutes.
+
 Authentication is handled by `authHeaders()`: Bearer for OpenAI-style, `x-api-key`
 
 - `anthropic-version` for Anthropic, and a query-string `key` for Gemini.

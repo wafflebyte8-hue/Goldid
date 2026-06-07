@@ -220,6 +220,10 @@ If you want to force GPU acceleration, launch with `GOLDID_ELECTRON_GPU=1`.
 local model lists come straight from the running server, so GolDid shows the
 models you actually have, not some hardcoded list.
 
+Local chat requests can run for up to **30 minutes** so slower Ollama, vLLM, and
+LM Studio models have time to finish. Model-list fetches stay short at 15 seconds
+so setup does not hang when a local server is offline.
+
 <sub>your API keys get encrypted the moment you type them.</sub>
 
 ## The prompt thing (why this exists)
