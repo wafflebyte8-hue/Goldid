@@ -162,7 +162,7 @@ The entry point is `goldid.js`. Its `main()` function:
 gd
 ```
 
-Shows a clean ASCII welcome panel with session status, agent tools, providers,
+Shows a clean gold/amber ASCII welcome panel with session status, agent tools, providers,
 and quick commands, then the `gd ❯` prompt. Type a message to chat, or a
 `/command` to run a slash command. The REPL guards against re-entrancy (it
 ignores new input while a turn is in progress).

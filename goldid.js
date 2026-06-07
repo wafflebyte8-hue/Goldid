@@ -80,7 +80,7 @@ const LOGO = [
   ' | |_| | (_) | | |_| | | (_| |',
   '  \\____|\\___/|_|____/|_|\\__,_|',
 ];
-const LOGO_GRAD = [ui.gold, ui.gold, ui.amber, ui.amber, ui.mutedGold];
+const LOGO_GRAD = [ui.gold, ui.gold, ui.amber, ui.amber, ui.amber];
 
 const HERO = [
   '   ____       _ ____  _     _',
@@ -88,9 +88,9 @@ const HERO = [
   ' | |  _ / _ \\| | | | | |/ _` |',
   ' | |_| | (_) | | |_| | | (_| |',
   '  \\____|\\___/|_|____/|_|\\__,_|',
-  '  terminal-first agent workspace',
+  'terminal-first agent workspace',
 ];
-const HERO_GRAD = [ui.gold, ui.gold, ui.amber, ui.amber, ui.mutedGold, ui.mutedGold];
+const HERO_GRAD = [ui.gold, ui.gold, ui.amber, ui.amber, ui.amber, ui.gold];
 
 function statusValue(value) {
   return value ? ui.gold(value) : ui.dim('not configured');

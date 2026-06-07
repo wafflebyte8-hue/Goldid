@@ -83,7 +83,7 @@ as the CLI.
 ### What's new in 0.15.9
 
 - refreshed the CLI, desktop app, and website with the same cleaner dark UI
-- replaced the broken large CLI banner with a clean ASCII startup panel
+- refreshed the CLI startup banner with a cleaner gold/amber ASCII panel
 - changed the CLI prompt to `gd ❯`
 - fixed `npm run desktop` when `ELECTRON_RUN_AS_NODE` is set
 - fixed Linux desktop startup by launching Electron with `--no-sandbox` by default
