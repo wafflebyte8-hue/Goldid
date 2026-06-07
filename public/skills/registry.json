@@ -285,6 +285,246 @@
       "pageUrl": "/skills/5016/",
       "skillUrl": "/skills/5016/SKILL.md",
       "versionUrl": "/skills/5016/Version.js"
+    },
+    {
+      "id": "6001",
+      "name": "Code Reviewer",
+      "description": "Review any software project for bugs, regressions, maintainability risks, and missing tests.",
+      "author": "Goldid",
+      "version": "1.0.0",
+      "tags": [
+        "review",
+        "quality",
+        "bugs"
+      ],
+      "pageUrl": "/skills/6001/",
+      "skillUrl": "/skills/6001/SKILL.md",
+      "versionUrl": "/skills/6001/Version.js"
+    },
+    {
+      "id": "6002",
+      "name": "Bug Fixer",
+      "description": "Diagnose and fix bugs in any codebase with narrow patches and targeted verification.",
+      "author": "Goldid",
+      "version": "1.0.0",
+      "tags": [
+        "debugging",
+        "fixes",
+        "tests"
+      ],
+      "pageUrl": "/skills/6002/",
+      "skillUrl": "/skills/6002/SKILL.md",
+      "versionUrl": "/skills/6002/Version.js"
+    },
+    {
+      "id": "6003",
+      "name": "Test Builder",
+      "description": "Add focused tests for any project using the existing test framework and local conventions.",
+      "author": "Goldid",
+      "version": "1.0.0",
+      "tags": [
+        "testing",
+        "qa",
+        "coverage"
+      ],
+      "pageUrl": "/skills/6003/",
+      "skillUrl": "/skills/6003/SKILL.md",
+      "versionUrl": "/skills/6003/Version.js"
+    },
+    {
+      "id": "6004",
+      "name": "Documentation Writer",
+      "description": "Write or update documentation for any project based on actual behavior and commands.",
+      "author": "Goldid",
+      "version": "1.0.0",
+      "tags": [
+        "docs",
+        "readme",
+        "guides"
+      ],
+      "pageUrl": "/skills/6004/",
+      "skillUrl": "/skills/6004/SKILL.md",
+      "versionUrl": "/skills/6004/Version.js"
+    },
+    {
+      "id": "6005",
+      "name": "API Designer",
+      "description": "Design, review, or improve APIs for any backend, library, service, or integration.",
+      "author": "Goldid",
+      "version": "1.0.0",
+      "tags": [
+        "api",
+        "contracts",
+        "backend"
+      ],
+      "pageUrl": "/skills/6005/",
+      "skillUrl": "/skills/6005/SKILL.md",
+      "versionUrl": "/skills/6005/Version.js"
+    },
+    {
+      "id": "6006",
+      "name": "UI Auditor",
+      "description": "Review or improve any web or desktop UI for hierarchy, spacing, responsiveness, and usability.",
+      "author": "Goldid",
+      "version": "1.0.0",
+      "tags": [
+        "ui",
+        "ux",
+        "frontend"
+      ],
+      "pageUrl": "/skills/6006/",
+      "skillUrl": "/skills/6006/SKILL.md",
+      "versionUrl": "/skills/6006/Version.js"
+    },
+    {
+      "id": "6007",
+      "name": "Security Auditor",
+      "description": "Audit any codebase or configuration for practical security risks and unsafe defaults.",
+      "author": "Goldid",
+      "version": "1.0.0",
+      "tags": [
+        "security",
+        "audit",
+        "hardening"
+      ],
+      "pageUrl": "/skills/6007/",
+      "skillUrl": "/skills/6007/SKILL.md",
+      "versionUrl": "/skills/6007/Version.js"
+    },
+    {
+      "id": "6008",
+      "name": "Performance Profiler",
+      "description": "Find and fix performance bottlenecks in any application with measurement-first changes.",
+      "author": "Goldid",
+      "version": "1.0.0",
+      "tags": [
+        "performance",
+        "profiling",
+        "optimization"
+      ],
+      "pageUrl": "/skills/6008/",
+      "skillUrl": "/skills/6008/SKILL.md",
+      "versionUrl": "/skills/6008/Version.js"
+    },
+    {
+      "id": "6009",
+      "name": "Refactor Planner",
+      "description": "Plan or execute safe refactors in any codebase without changing behavior.",
+      "author": "Goldid",
+      "version": "1.0.0",
+      "tags": [
+        "refactor",
+        "architecture",
+        "maintainability"
+      ],
+      "pageUrl": "/skills/6009/",
+      "skillUrl": "/skills/6009/SKILL.md",
+      "versionUrl": "/skills/6009/Version.js"
+    },
+    {
+      "id": "6010",
+      "name": "Release Notes Writer",
+      "description": "Create release notes, changelogs, migration notes, and upgrade summaries for any project.",
+      "author": "Goldid",
+      "version": "1.0.0",
+      "tags": [
+        "release",
+        "changelog",
+        "communication"
+      ],
+      "pageUrl": "/skills/6010/",
+      "skillUrl": "/skills/6010/SKILL.md",
+      "versionUrl": "/skills/6010/Version.js"
+    },
+    {
+      "id": "6011",
+      "name": "CI Debugger",
+      "description": "Debug failing CI pipelines, build jobs, tests, and automation in any project.",
+      "author": "Goldid",
+      "version": "1.0.0",
+      "tags": [
+        "ci",
+        "devops",
+        "automation"
+      ],
+      "pageUrl": "/skills/6011/",
+      "skillUrl": "/skills/6011/SKILL.md",
+      "versionUrl": "/skills/6011/Version.js"
+    },
+    {
+      "id": "6012",
+      "name": "Data Cleaner",
+      "description": "Clean, validate, transform, or inspect structured data files for any project.",
+      "author": "Goldid",
+      "version": "1.0.0",
+      "tags": [
+        "data",
+        "csv",
+        "json"
+      ],
+      "pageUrl": "/skills/6012/",
+      "skillUrl": "/skills/6012/SKILL.md",
+      "versionUrl": "/skills/6012/Version.js"
+    },
+    {
+      "id": "6013",
+      "name": "Accessibility Checker",
+      "description": "Audit and improve accessibility in any web, desktop, or mobile interface.",
+      "author": "Goldid",
+      "version": "1.0.0",
+      "tags": [
+        "accessibility",
+        "a11y",
+        "ui"
+      ],
+      "pageUrl": "/skills/6013/",
+      "skillUrl": "/skills/6013/SKILL.md",
+      "versionUrl": "/skills/6013/Version.js"
+    },
+    {
+      "id": "6014",
+      "name": "Dependency Upgrader",
+      "description": "Upgrade dependencies in any project while managing breaking changes and lockfile consistency.",
+      "author": "Goldid",
+      "version": "1.0.0",
+      "tags": [
+        "dependencies",
+        "upgrade",
+        "maintenance"
+      ],
+      "pageUrl": "/skills/6014/",
+      "skillUrl": "/skills/6014/SKILL.md",
+      "versionUrl": "/skills/6014/Version.js"
+    },
+    {
+      "id": "6015",
+      "name": "Migration Planner",
+      "description": "Plan migrations between frameworks, libraries, providers, data formats, or architectures for any project.",
+      "author": "Goldid",
+      "version": "1.0.0",
+      "tags": [
+        "migration",
+        "planning",
+        "architecture"
+      ],
+      "pageUrl": "/skills/6015/",
+      "skillUrl": "/skills/6015/SKILL.md",
+      "versionUrl": "/skills/6015/Version.js"
+    },
+    {
+      "id": "6016",
+      "name": "Repo Onboarding",
+      "description": "Map any unfamiliar repository and explain how to build, test, run, and safely change it.",
+      "author": "Goldid",
+      "version": "1.0.0",
+      "tags": [
+        "onboarding",
+        "analysis",
+        "setup"
+      ],
+      "pageUrl": "/skills/6016/",
+      "skillUrl": "/skills/6016/SKILL.md",
+      "versionUrl": "/skills/6016/Version.js"
     }
   ]
 }

@@ -1,6 +1,6 @@
 'use strict';
 
-const state = { snapshot: null, messages: [], sessionId: null, activeTab: 'sessions', requestId: null, streamingNode: null, toolEvents: new Map(), skillRegistry: null, installingSkills: new Set(), skillsDialogView: 'installed', skillsDialogDetail: null };
+const state = { snapshot: null, messages: [], sessionId: null, activeTab: 'sessions', requestId: null, streamingNode: null, toolEvents: new Map(), skillRegistry: null, installingSkills: new Set(), skillsDialogView: 'installed', skillsDialogDetail: null, skillsExplorerKey: '', skillsPaneKey: '' };
 let sessionPendingDelete = null;
 let commandIndex = 0;
 let visibleCommands = [];
@@ -346,7 +346,16 @@ function isMarketplaceInstalled(item) {
 function setSkillsView(view) {
   state.skillsDialogView = view;
   state.skillsDialogDetail = null;
+  state.skillsPaneKey = '';
   renderSkillsDialog();
+}
+
+function clearSkillsPane() {
+  $('skillsPaneTitle').textContent = '';
+  $('skillsPaneSubtitle').textContent = '';
+  $('skillsPaneContent').innerHTML = '';
+  $('skillsBackButton').hidden = true;
+  state.skillsPaneKey = 'blank';
 }
 
 function renderSkillsDialog() {
@@ -364,6 +373,14 @@ function renderSkillsDialog() {
 function renderSkillsExplorer() {
   const nav = $('skillsBrowserNav');
   if (!state.skillsDialogDetail) {
+    const key = `root:${state.skillsDialogView}`;
+    if (state.skillsExplorerKey === key) {
+      nav.querySelectorAll('[data-skills-view]').forEach((button) =>
+        button.classList.toggle('active', button.dataset.skillsView === state.skillsDialogView)
+      );
+      return;
+    }
+    state.skillsExplorerKey = key;
     nav.innerHTML = `
       <button class="skill-nav ${state.skillsDialogView === 'installed' ? 'active' : ''}" data-skills-view="installed">Installed</button>
       <button class="skill-nav ${state.skillsDialogView === 'marketplace' ? 'active' : ''}" data-skills-view="marketplace">Marketplace</button>
@@ -375,8 +392,17 @@ function renderSkillsExplorer() {
   }
   if (state.skillsDialogView === 'marketplace') {
     const skills = (state.skillRegistry?.skills || []).filter((skill) => !isMarketplaceInstalled(skill));
+    const activeId = state.skillsDialogDetail?.item?.id || '';
+    const key = `market-explorer:${skills.map((skill) => skill.id).join('|')}`;
+    if (state.skillsExplorerKey === key) {
+      nav.querySelectorAll('[data-market-explorer]').forEach((button) =>
+        button.classList.toggle('active', button.dataset.marketExplorer === activeId)
+      );
+      return;
+    }
+    state.skillsExplorerKey = key;
     nav.innerHTML = '<div class="section-label">Marketplace</div>' + (skills.map((skill, index) =>
-      `<button class="skill-nav explorer ${state.skillsDialogDetail?.item?.id === skill.id ? 'active' : ''}" style="--item-index:${index}" data-market-explorer="${escapeHtml(skill.id)}">${escapeHtml(skill.name)}</button>`
+      `<button class="skill-nav explorer ${activeId === skill.id ? 'active' : ''}" style="--item-index:${index}" data-market-explorer="${escapeHtml(skill.id)}">${escapeHtml(skill.name)}</button>`
     ).join('') || '<p class="section-label">All installed</p>');
     nav.querySelectorAll('[data-market-explorer]').forEach((button) =>
       button.addEventListener('click', () => showMarketplaceSkillDetail(button.dataset.marketExplorer))
@@ -384,8 +410,17 @@ function renderSkillsExplorer() {
     return;
   }
   const skills = state.snapshot.skills || [];
+  const activeName = state.skillsDialogDetail?.skill?.name || '';
+  const key = `installed-explorer:${skills.map((skill) => skill.slug || skill.name).join('|')}`;
+  if (state.skillsExplorerKey === key) {
+    nav.querySelectorAll('[data-installed-explorer]').forEach((button) =>
+      button.classList.toggle('active', button.dataset.installedExplorer === activeName)
+    );
+    return;
+  }
+  state.skillsExplorerKey = key;
   nav.innerHTML = '<div class="section-label">Installed</div>' + (skills.map((skill, index) =>
-    `<button class="skill-nav explorer ${state.skillsDialogDetail?.skill?.name === skill.name ? 'active' : ''}" style="--item-index:${index}" data-installed-explorer="${escapeHtml(skill.name)}">${escapeHtml(skill.name)}</button>`
+    `<button class="skill-nav explorer ${activeName === skill.name ? 'active' : ''}" style="--item-index:${index}" data-installed-explorer="${escapeHtml(skill.name)}">${escapeHtml(skill.name)}</button>`
   ).join('') || '<p class="section-label">No skills</p>');
   nav.querySelectorAll('[data-installed-explorer]').forEach((button) =>
     button.addEventListener('click', () => showInstalledSkillDetail(button.dataset.installedExplorer))
@@ -393,9 +428,12 @@ function renderSkillsExplorer() {
 }
 
 function renderInstalledPane() {
+  const skills = state.snapshot.skills || [];
+  const key = `installed-pane:${skills.map((skill) => skill.slug || skill.name).join('|')}`;
+  if (state.skillsPaneKey === key) return;
+  state.skillsPaneKey = key;
   $('skillsPaneTitle').textContent = 'Installed';
   $('skillsPaneSubtitle').textContent = 'Skills available to GolDid right now.';
-  const skills = state.snapshot.skills || [];
   $('skillsPaneContent').innerHTML = skills.length ? `<div class="skills-manager-list">${skills.map((skill, index) => `
     <button class="skills-manager-card" style="--item-index:${index}" data-installed-detail="${escapeHtml(skill.name)}">
       <div>
@@ -414,8 +452,17 @@ function renderInstalledPane() {
 function renderMarketplacePane() {
   $('skillsPaneTitle').textContent = 'Marketplace';
   $('skillsPaneSubtitle').textContent = 'Official skills that are not installed yet.';
-  const all = state.skillRegistry?.skills || [];
+  if (!state.skillRegistry) {
+    if (state.skillsPaneKey === 'marketplace-loading') return;
+    state.skillsPaneKey = 'marketplace-loading';
+    $('skillsPaneContent').innerHTML = '';
+    return;
+  }
+  const all = state.skillRegistry.skills || [];
   const skills = all.filter((skill) => !isMarketplaceInstalled(skill));
+  const key = `marketplace-pane:${skills.map((skill) => skill.id).join('|')}`;
+  if (state.skillsPaneKey === key) return;
+  state.skillsPaneKey = key;
   $('skillsPaneContent').innerHTML = skills.length ? `<div class="skills-manager-list">${skills.map((skill, index) => `
     <button class="skills-manager-card" style="--item-index:${index}" data-market-detail="${escapeHtml(skill.id)}">
       <div>
@@ -434,19 +481,18 @@ function renderMarketplacePane() {
 async function showInstalledSkillDetail(name) {
   const skill = state.snapshot.skills.find((item) => item.name === name);
   if (!skill) return;
-  state.skillsDialogDetail = { type: 'installed', skill, body: 'Loading...' };
-  renderSkillsDialog();
+  clearSkillsPane();
   try {
-    state.skillsDialogDetail.body = await window.goldid.viewSkill(name);
+    const body = await window.goldid.viewSkill(name);
+    state.skillsDialogDetail = { type: 'installed', skill, body };
   } catch (error) {
-    state.skillsDialogDetail.body = error.message || String(error);
+    state.skillsDialogDetail = { type: 'installed', skill, body: error.message || String(error), error: true };
   }
   renderSkillsDialog();
 }
 
 async function showMarketplaceSkillDetail(id) {
-  state.skillsDialogDetail = { type: 'marketplace', item: { id }, body: 'Loading Version.js...' };
-  renderSkillsDialog();
+  clearSkillsPane();
   try {
     const detail = await window.goldid.marketSkillDetail(id);
     state.skillsDialogDetail = { type: 'marketplace', item: detail, body: detail.skillPreview || '' };
@@ -460,6 +506,9 @@ function renderSkillDetailPane() {
   const detail = state.skillsDialogDetail;
   const isInstalled = detail.type === 'installed';
   const item = isInstalled ? detail.skill : detail.item;
+  const key = `detail:${detail.type}:${item.slug || item.id || item.name}:${detail.error ? 'error' : 'ok'}`;
+  if (state.skillsPaneKey === key) return;
+  state.skillsPaneKey = key;
   $('skillsPaneTitle').textContent = item.name || `Skill ${item.id}`;
   $('skillsPaneSubtitle').textContent = isInstalled ? 'Installed folder' : 'Marketplace skill';
   const action = isInstalled
@@ -486,6 +535,7 @@ function renderSkillDetailPane() {
 
 function goBackSkillsDialog() {
   state.skillsDialogDetail = null;
+  state.skillsPaneKey = '';
   renderSkillsDialog();
 }
 
@@ -494,7 +544,6 @@ async function installSkill(id) {
   if (!clean || state.installingSkills.has(clean)) return;
   state.installingSkills.add(clean);
   if (state.activeTab === 'skills') renderSidebar();
-  if ($('skillsDialog').open) renderSkillsDialog();
   try {
     if (!$('skillsDialog').open) showNotice(`Installing skill ${clean}...`);
     const result = await window.goldid.installSkill(clean);
@@ -519,7 +568,6 @@ async function installSkill(id) {
   } finally {
     state.installingSkills.delete(clean);
     if (state.activeTab === 'skills') renderSidebar();
-    if ($('skillsDialog').open) renderSkillsDialog();
   }
 }
 
