@@ -105,7 +105,8 @@ if [ "$is_mac" -eq 0 ]; then
 Type=Application
 Name=GolDid
 Comment=GolDid desktop AI assistant
-Exec=$INSTALL_DIR/desktop-launch.sh
+Exec="$INSTALL_DIR/desktop-launch.sh"
+Path=$INSTALL_DIR
 Icon=$INSTALL_DIR/desktop/assets/goldid-logo.png
 Terminal=false
 Categories=Utility;Development;

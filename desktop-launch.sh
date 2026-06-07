@@ -4,9 +4,18 @@
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+log_dir="${GOLDID_HOME:-$HOME/.goldid}"
+log_file="$log_dir/desktop.log"
+mkdir -p "$log_dir" 2>/dev/null || true
+
+log() {
+  printf '[%s] %s\n' "$(date -Is 2>/dev/null || date)" "$*" >> "$log_file" 2>/dev/null || true
+}
 
 if [ "$(uname -s)" = "Darwin" ]; then
-  echo "The GolDid desktop app is not available on macOS. Use the CLI instead: gd" >&2
+  msg="The GolDid desktop app is not available on macOS. Use the CLI instead: gd"
+  echo "$msg" >&2
+  log "$msg"
   exit 1
 fi
 
@@ -14,15 +23,30 @@ electron="$root/node_modules/electron/dist/electron"
 main="$root/desktop/main.js"
 
 if [ ! -x "$electron" ]; then
-  echo "GolDid desktop runtime is missing. Run setup.sh or 'npm install'." >&2
+  msg="GolDid desktop runtime is missing. Run setup.sh or 'npm install'."
+  echo "$msg" >&2
+  log "$msg"
   exit 1
 fi
 
 unset ELECTRON_RUN_AS_NODE
+cd "$root"
 args=()
 if [ "${GOLDID_ELECTRON_SANDBOX:-0}" != "1" ]; then
   # Electron's Chromium sandbox often cannot initialize from a per-user install
   # because chrome-sandbox is not root-owned with the setuid bit.
   args+=(--no-sandbox)
 fi
-exec "$electron" "${args[@]}" "$main"
+if [ "${GOLDID_ELECTRON_GPU:-0}" != "1" ]; then
+  args+=(--disable-gpu --disable-software-rasterizer)
+fi
+args+=(--disable-dev-shm-usage)
+
+log "Launching GolDid desktop from $root"
+log "Electron: $electron"
+log "Args: ${args[*]} $main"
+
+"$electron" "${args[@]}" "$main" >> "$log_file" 2>&1
+status=$?
+log "GolDid desktop exited with status $status"
+exit "$status"

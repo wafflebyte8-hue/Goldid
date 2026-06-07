@@ -139,8 +139,10 @@ That launcher removes `ELECTRON_RUN_AS_NODE` from the environment before
 starting Electron, which prevents Electron from accidentally running the app as
 plain Node. On Linux it also passes `--no-sandbox` by default, because per-user
 installs usually cannot provide Electron's root-owned setuid Chromium sandbox.
-Set `GOLDID_ELECTRON_SANDBOX=1` if the host has a correctly configured Electron
-sandbox and you want to use it.
+The Linux launcher also disables GPU acceleration by default and writes startup
+errors to `~/.goldid/desktop.log`. Set `GOLDID_ELECTRON_SANDBOX=1` if the host
+has a correctly configured Electron sandbox and you want to use it. Set
+`GOLDID_ELECTRON_GPU=1` to opt back into GPU acceleration.
 
 ---
 
@@ -865,7 +867,8 @@ same encrypted config, memories, skills, and sessions as the CLI.
 - **`launch.js`** - local-development launcher used by `npm run desktop`.
   It starts Electron with a clean environment, removes `ELECTRON_RUN_AS_NODE`,
   and applies the Linux `--no-sandbox` default unless
-  `GOLDID_ELECTRON_SANDBOX=1` is set.
+  `GOLDID_ELECTRON_SANDBOX=1` is set. The installed Linux shell launcher also
+  logs startup output to `~/.goldid/desktop.log`.
 
 - **`main.js`** — Electron main process. Creates the window with
   `contextIsolation: true` and `nodeIntegration: false`. Registers IPC handlers:
