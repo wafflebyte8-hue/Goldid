@@ -164,8 +164,9 @@ npm run desktop
 ```
 
 `npm run desktop` uses `desktop/launch.js`, which strips `ELECTRON_RUN_AS_NODE`
-before starting Electron. On Linux, the launcher passes `--no-sandbox`, disables
-GPU acceleration by default, and writes failures to `~/.goldid/desktop.log`.
+before starting Electron. On Linux, the launcher passes `--no-sandbox`, forces
+GTK 3, disables GPU acceleration by default, and writes failures to
+`~/.goldid/desktop.log`.
 Per-user installs usually cannot provide Electron's setuid Chromium sandbox. If
 you have configured the sandbox yourself, launch with `GOLDID_ELECTRON_SANDBOX=1`.
 If you want to force GPU acceleration, launch with `GOLDID_ELECTRON_GPU=1`.

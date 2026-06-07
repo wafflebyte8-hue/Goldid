@@ -40,7 +40,7 @@ fi
 if [ "${GOLDID_ELECTRON_GPU:-0}" != "1" ]; then
   args+=(--disable-gpu --disable-software-rasterizer)
 fi
-args+=(--disable-dev-shm-usage)
+args+=(--disable-dev-shm-usage --gtk-version=3)
 
 log "Launching GolDid desktop from $root"
 log "Electron: $electron"

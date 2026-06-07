@@ -15,7 +15,7 @@ if (process.platform === 'linux' && env.GOLDID_ELECTRON_GPU !== '1') {
   args.push('--disable-gpu', '--disable-software-rasterizer');
 }
 if (process.platform === 'linux') {
-  args.push('--disable-dev-shm-usage');
+  args.push('--disable-dev-shm-usage', '--gtk-version=3');
 }
 args.push(path.join(__dirname, 'main.js'));
 

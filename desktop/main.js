@@ -28,6 +28,9 @@ if (process.platform === 'darwin') {
 if (process.platform === 'linux' && process.env.GOLDID_ELECTRON_SANDBOX !== '1') {
   app.commandLine.appendSwitch('no-sandbox');
 }
+if (process.platform === 'linux') {
+  app.commandLine.appendSwitch('gtk-version', '3');
+}
 if (process.platform === 'linux' && process.env.GOLDID_ELECTRON_GPU !== '1') {
   app.disableHardwareAcceleration();
 }

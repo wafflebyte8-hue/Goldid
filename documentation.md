@@ -139,10 +139,12 @@ That launcher removes `ELECTRON_RUN_AS_NODE` from the environment before
 starting Electron, which prevents Electron from accidentally running the app as
 plain Node. On Linux it also passes `--no-sandbox` by default, because per-user
 installs usually cannot provide Electron's root-owned setuid Chromium sandbox.
-The Linux launcher also disables GPU acceleration by default and writes startup
-errors to `~/.goldid/desktop.log`. Set `GOLDID_ELECTRON_SANDBOX=1` if the host
-has a correctly configured Electron sandbox and you want to use it. Set
-`GOLDID_ELECTRON_GPU=1` to opt back into GPU acceleration.
+The Linux launcher also forces GTK 3, disables GPU acceleration by default, and
+writes startup errors to `~/.goldid/desktop.log`. Forcing GTK 3 avoids Electron
+aborting on desktops where GTK 2/3 symbols and GTK 4 are otherwise loaded in the
+same process. Set `GOLDID_ELECTRON_SANDBOX=1` if the host has a correctly
+configured Electron sandbox and you want to use it. Set `GOLDID_ELECTRON_GPU=1`
+to opt back into GPU acceleration.
 
 ---
 
