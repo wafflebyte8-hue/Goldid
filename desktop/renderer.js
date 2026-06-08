@@ -56,12 +56,32 @@ function renderStatus() {
   $('connectionDot').classList.toggle('online', Boolean(provider && active.model));
   $('workingDirectory').textContent = state.snapshot.cwd;
   $('modeSelect').value = state.snapshot.config.agent?.mode || 'ask';
+  $('namingSelect').value = state.snapshot.config.agent?.naming || 'auto';
 }
 
 async function setMode(mode) {
   try {
     state.snapshot.config = await window.goldid.setMode(mode);
     renderStatus();
+  } catch (error) {
+    showNotice(error.message || String(error));
+  }
+}
+
+async function nameMode(mode) {
+  const next = String(mode || '').trim().toLowerCase();
+  if (!next) {
+    showNotice(`Chat naming: ${state.snapshot.config.agent?.naming || 'auto'}\n\nUse /name never | auto | always.`);
+    return;
+  }
+  if (!['never', 'auto', 'always'].includes(next)) {
+    showNotice('Use /name never | auto | always.');
+    return;
+  }
+  try {
+    state.snapshot.config = await window.goldid.setNaming(next);
+    renderStatus();
+    showNotice(`Chat naming: ${state.snapshot.config.agent?.naming || 'auto'}`);
   } catch (error) {
     showNotice(error.message || String(error));
   }
@@ -75,6 +95,8 @@ const commands = [
   { usage: '/providers', description: 'Open provider settings', run: () => openSettings() },
   { usage: '/sessions', description: 'Show saved conversations', run: () => selectSidebarTab('sessions') },
   { usage: '/skills', description: 'Open the skills manager', run: () => openSkillsDialog() },
+  { usage: '/name', description: 'Show chat naming mode', run: () => nameMode('') },
+  { usage: '/name auto', description: 'Auto-name chats above 10 TPS', run: () => nameMode('auto') },
   { usage: '/memory', description: 'Show persistent memory', run: () => selectSidebarTab('memory') },
   { usage: '/agent on', description: 'Enable agent tools', run: () => setAgent(true) },
   { usage: '/agent off', description: 'Disable agent tools', run: () => setAgent(false) },
@@ -271,6 +293,12 @@ async function executeTypedCommand(text) {
     const arg = updateMatch[1] || '';
     if (arg === 'check' || arg === 'status') await checkUpdate();
     else await updateApp(arg === '--force' || arg === 'force');
+    return true;
+  }
+  const nameMatch = normalized.match(/^\/name(?:\s+(\S+))?$/);
+  if (nameMatch) {
+    $('messageInput').value = '';
+    await nameMode(nameMatch[1] || '');
     return true;
   }
   const command = commands.find((item) => item.usage === normalized);
@@ -781,7 +809,7 @@ async function sendMessage(event) {
     // Keep streamed/partial content if a stop produced no final text.
     last.content = result.text || last.content;
     if (result.stopped) last.content += last.content ? '\n\n_(stopped)_' : '_(stopped)_';
-    $('conversationTitle').textContent = state.messages.find((item) => item.role === 'user')?.content.slice(0, 64) || 'Conversation';
+    $('conversationTitle').textContent = result.title || state.messages.find((item) => item.role === 'user')?.content.slice(0, 64) || 'Conversation';
     await refresh();
   } catch (error) {
     state.messages[state.messages.length - 1].content = `Error: ${error.message}`;
@@ -980,6 +1008,15 @@ $('settingsForm').addEventListener('submit', async (event) => {
 });
 
 $('modeSelect').addEventListener('change', (event) => setMode(event.target.value));
+$('namingSelect').addEventListener('change', async (event) => {
+  try {
+    state.snapshot.config = await window.goldid.setNaming(event.target.value);
+    renderStatus();
+  } catch (error) {
+    showNotice(error.message || String(error));
+    event.target.value = state.snapshot.config.agent?.naming || 'auto';
+  }
+});
 $('sandboxSelect').addEventListener('change', async (event) => {
   try {
     state.snapshot.config = await window.goldid.setSandbox(event.target.value);

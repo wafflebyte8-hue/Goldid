@@ -11,7 +11,7 @@ sandboxing, and TPM-backed protection of your API keys.
 This document describes **everything** about GolDid in detail: architecture,
 every module, every command, every tool, the prompt system, the security model,
 the on-disk layout, and the desktop app. It reflects the current code
-(version `0.16.3`).
+(version `0.16.4.1`).
 
 ---
 
@@ -688,16 +688,20 @@ instructions.
 `lib/sessions.js` stores conversations as JSON under `~/.goldid/sessions`, one
 file per session, capped at **100** (older ones are pruned).
 
-- Each session file has `version`, `id`, `title` (derived from the first user
-  message), `cwd`, `createdAt`, `updatedAt`, and `messages`.
+- Each session file has `version`, `id`, `title`, `cwd`, `createdAt`,
+  `updatedAt`, and `messages`.
 - IDs are sanitized to `[a-z0-9_-]`, max 64 chars. New IDs are timestamp + random
   hex. `/session <name>` gives the current conversation a memorable ID.
 - Conversations are saved automatically after each completed turn (CLI).
 
-Commands: `/sessions [query]` (list/search — search scans IDs, titles, cwd, and
-message contents), `/session [name]` (show/name current), `/resume <id>`,
-`/delete-session <id>`. Session files contain your messages and tool results;
-keep the directory private.
+Commands: `/sessions [query]` (list/search - search scans IDs, titles, cwd, and
+message contents), `/session [name]` (show/name current), `/name [mode]`,
+`/resume <id>`, `/delete-session <id>`. Session files contain your messages and
+tool results; keep the directory private.
+
+`/name never`, `/name auto`, and `/name always` control generated chat titles.
+`auto` generates a title only when the completed response speed is above 10
+estimated tokens per second; `always` generates after each completed chat.
 
 ---
 
@@ -865,6 +869,7 @@ subcommands.
 | `/memory`                      | Show or edit persistent memory.                    |
 | `/sessions [query]`            | List or search saved conversations.                |
 | `/session [name]`              | Show or name the current session.                  |
+| `/name [mode]`                 | Auto-name chats: never, auto, or always.           |
 | `/resume <id>`                 | Resume a saved conversation.                       |
 | `/delete-session <id>`         | Delete a saved conversation.                       |
 | `/skills`                      | List compatible installed skills.                  |
@@ -1009,8 +1014,10 @@ Keep `~/.goldid/sessions` private (it contains chat messages and tool results).
 
 ---
 
-_This documentation reflects GolDid `0.16.3`. Behavior described here is taken
+_This documentation reflects GolDid `0.16.4.1`. Behavior described here is taken
 from the source under `goldid.js`, `lib/`, and `desktop/`._
+
+
 
 
 

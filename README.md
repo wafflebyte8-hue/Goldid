@@ -80,8 +80,9 @@ Running the installer manually still works too.
 the desktop app shares the same encrypted config, memories, skills, and sessions
 as the CLI.
 
-### What's new in 0.16.3
+### What's new in 0.16.4.1
 
+- added chat naming modes with `/name never`, `/name auto`, and `/name always`
 - refreshed the CLI, desktop app, and website with the same cleaner dark UI
 - refreshed the CLI startup banner with a cleaner gold/amber ASCII panel
 - changed the CLI prompt to `gd ❯`
@@ -335,10 +336,15 @@ and come back later:
 /sessions
 /sessions authentication
 /resume <session-id>
+/name auto
 ```
 
 `/session my-project` gives the current chat a memorable id. `/reset` starts
 fresh with a new id.
+
+`/name` controls generated chat titles. `never` disables generation, `always`
+generates after each completed chat, and `auto` only generates when response
+speed is above 10 estimated tokens per second.
 
 session files have your messages + tool results in them, so keep
 `~/.goldid/sessions` private and skim it before sharing logs.
@@ -603,6 +609,7 @@ keys. never upload `config.json`, `key.bin`, or `key.tpm`.
 | `/memory`                      | Inspect or edit memory                     |
 | `/sessions [query]`            | List or search saved conversations         |
 | `/session [name]`              | Show or name the current session           |
+| `/name [mode]`                 | Auto-name chats: never, auto, or always    |
 | `/resume <id>`                 | Resume a saved conversation                |
 | `/delete-session <id>`         | Delete a saved conversation                |
 | `/skills`                      | List compatible installed skills           |
@@ -706,6 +713,7 @@ issue.
 ## License
 
 MIT
+
 
 
 

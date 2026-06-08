@@ -88,6 +88,13 @@
       <div id="modelSuggestions" class="model-suggestions"></div>
       <fieldset class="security-section">
         <legend>Security</legend>
+        <label>Chat naming
+          <select id="namingSelect">
+            <option value="never">Never</option>
+            <option value="auto">Auto (&gt; 10 TPS)</option>
+            <option value="always">Always</option>
+          </select>
+        </label>
         <label>Tool sandbox
           <select id="sandboxSelect">
             <option value="off">Off — tools touch the host freely</option>

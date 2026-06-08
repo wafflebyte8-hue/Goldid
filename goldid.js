@@ -24,12 +24,13 @@ const sandbox = require('./lib/sandbox');
 const agentmode = require('./lib/agentmode');
 const memory = require('./lib/memory');
 const sessions = require('./lib/sessions');
+const naming = require('./lib/naming');
 const projectContext = require('./lib/context');
 const skills = require('./lib/skills');
 const migrate = require('./lib/migrate');
 const updater = require('./lib/updater');
 
-const VERSION = '0.16.3';
+const VERSION = '0.16.4.1';
 const TOOL_TAG = '<tool_call>';
 
 const toolsEnabled = (cfg) => cfg.agent?.tools !== false; // default on
@@ -439,12 +440,14 @@ async function handleChat(text, conversation, ctx) {
     mode: agentmode.getMode(cfg),
     model: cfg.active.model,
     cwd: process.cwd(),
+    namingMode: naming.normalizeMode(cfg.agent?.naming),
     memorySnapshot,
     projectContext: projectContext.format(process.cwd()),
     skillsCatalog: skills.catalog(process.cwd()),
   });
 
   conversation.push({ role: 'user', content: text });
+  const responseStartedAt = Date.now();
 
   // Unlimited tool-calling: loop until the model produces a final answer with no
   // tool call. The model controls termination — there is no fixed step cap.
@@ -489,7 +492,16 @@ async function handleChat(text, conversation, ctx) {
   }
   if (ctx.sessionId && conversation.length) {
     try {
-      sessions.save(ctx.sessionId, conversation, { cwd: process.cwd() });
+      let saved = sessions.save(ctx.sessionId, conversation, { cwd: process.cwd() });
+      const named = await naming.maybeGenerateTitle({
+        cfg,
+        conversation,
+        startedAt: responseStartedAt,
+      });
+      if (named.title) {
+        saved = sessions.rename(ctx.sessionId, named.title);
+        ui.info(`Session named: ${saved.title}`);
+      }
     } catch (e) {
       ui.warning('Could not save session: ' + e.message);
     }
@@ -745,6 +757,22 @@ function sessionCmd(args, ctx, conversation) {
     return ui.success(`Current conversation saved as ${saved.id}.`);
   }
   ui.info(`Current session: ${ctx.sessionId}`);
+}
+
+function nameCmd(args) {
+  const cfg = config.load();
+  const next = String(args[0] || '').trim().toLowerCase();
+  if (!next) {
+    ui.info(`Auto naming: ${naming.normalizeMode(cfg.agent?.naming)} (auto requires > ${naming.AUTO_TPS_THRESHOLD} tps)`);
+    return;
+  }
+  if (!naming.MODES.includes(next)) {
+    ui.warning('Usage: /name never | auto | always');
+    return;
+  }
+  cfg.agent = { ...(cfg.agent || {}), naming: next };
+  config.save(cfg);
+  ui.success(`Auto naming: ${next}`);
 }
 
 function resumeSession(args, ctx, conversation) {
@@ -1153,6 +1181,7 @@ function printHelp() {
     ['/memory', 'show or edit persistent memory'],
     ['/sessions [query]', 'list or search saved conversations'],
     ['/session [name]', 'show or name the current session'],
+    ['/name [mode]', 'auto-name chats: never | auto | always'],
     ['/resume <id>', 'resume a saved conversation'],
     ['/delete-session <id>', 'delete a saved conversation'],
     ['/skills', 'list compatible installed skills'],
@@ -1213,6 +1242,7 @@ const slash = {
   memory: { run: (args, ctx) => memoryCmd(args, ctx) },
   sessions: { run: (args) => showSessions(args) },
   session: { run: (args, ctx, convo) => sessionCmd(args, ctx, convo) },
+  name: { run: (args) => nameCmd(args) },
   resume: { run: (args, ctx, convo) => resumeSession(args, ctx, convo) },
   'delete-session': { run: (args, ctx) => deleteSession(args, ctx) },
   skills: { run: () => showSkills() },
@@ -1412,7 +1442,7 @@ const UTILITY = new Set([
   'setup', 'use', 'model', 'models', 'providers', 'key', 'url',
   'agent', 'mode', 'sandbox', 'image', 'keystore', 'tools', 'soul', 'memory', 'remember', 'forget', 'config',
   'update',
-  'sessions', 'session', 'resume', 'delete-session',
+  'sessions', 'session', 'name', 'resume', 'delete-session',
   'skills', 'skill',
   'migrate',
   'reset', 'clear', 'version', 'help', 'exit', 'quit',
@@ -1456,6 +1486,7 @@ if (require.main === module) {
 }
 
 module.exports = { main };
+
 
 
 

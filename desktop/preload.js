@@ -7,6 +7,7 @@ contextBridge.exposeInMainWorld('goldid', {
   saveConfig: (input) => ipcRenderer.invoke('config:save', input),
   setAgent: (enabled) => ipcRenderer.invoke('config:agent', enabled),
   setMode: (mode) => ipcRenderer.invoke('config:mode', mode),
+  setNaming: (mode) => ipcRenderer.invoke('config:naming', mode),
   setSandbox: (mode) => ipcRenderer.invoke('config:sandbox', mode),
   setImageModel: (model) => ipcRenderer.invoke('config:imageModel', model),
   setImageConfig: (input) => ipcRenderer.invoke('config:imageSetup', input),

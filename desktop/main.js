@@ -8,6 +8,7 @@ const providers = require('../lib/providers');
 const prompt = require('../lib/prompt');
 const memory = require('../lib/memory');
 const sessions = require('../lib/sessions');
+const naming = require('../lib/naming');
 const skills = require('../lib/skills');
 const projectContext = require('../lib/context');
 const tools = require('../lib/tools');
@@ -16,7 +17,7 @@ const keystore = require('../lib/keystore');
 const agentmode = require('../lib/agentmode');
 const updater = require('../lib/updater');
 
-const VERSION = '0.16.3';
+const VERSION = '0.16.4.1';
 
 // The GolDid desktop app supports Windows and Linux only. On macOS, use the CLI.
 if (process.platform === 'darwin') {
@@ -193,6 +194,13 @@ ipcMain.handle('config:mode', (_, mode) => {
   return publicConfig();
 });
 
+ipcMain.handle('config:naming', (_, mode) => {
+  const cfg = config.load();
+  cfg.agent = { ...(cfg.agent || {}), naming: naming.normalizeMode(mode) };
+  config.save(cfg);
+  return publicConfig();
+});
+
 ipcMain.handle('keystore:status', () => keystore.status());
 ipcMain.handle('keystore:migrate', () => keystore.migrateToTpm());
 ipcMain.handle('keystore:revert', () => keystore.revertToPlaintext());
@@ -299,11 +307,13 @@ ipcMain.handle('chat:send', async (event, input) => {
     mode: agentmode.getMode(cfg),
     model: cfg.active.model,
     cwd: process.cwd(),
+    namingMode: naming.normalizeMode(cfg.agent?.naming),
     memorySnapshot: memory.formatForPrompt({ includeEmpty: true }),
     projectContext: projectContext.format(process.cwd()),
     skillsCatalog: skills.catalog(process.cwd()),
   });
   let finalText = '';
+  const responseStartedAt = Date.now();
 
   // Per-request abort controller so the renderer's Stop button can cancel.
   const controller = new AbortController();
@@ -378,8 +388,24 @@ ipcMain.handle('chat:send', async (event, input) => {
 
   const stopped = cancelled();
   if (!finalText && !stopped) finalText = '(no answer produced)';
-  sessions.save(sessionId, conversation, { cwd: process.cwd() });
-  return { sessionId, text: finalText, stopped };
+  let saved = sessions.save(sessionId, conversation, { cwd: process.cwd() });
+  let generatedTitle = '';
+  if (!stopped) {
+    try {
+      const named = await naming.maybeGenerateTitle({
+        cfg,
+        conversation,
+        startedAt: responseStartedAt,
+      });
+      if (named.title) {
+        saved = sessions.rename(sessionId, named.title);
+        generatedTitle = saved.title;
+      }
+    } catch {
+      /* title generation is best effort */
+    }
+  }
+  return { sessionId, text: finalText, stopped, title: generatedTitle || saved.title };
 });
 
 ipcMain.handle('chat:cancel', (_, requestId) => {
@@ -401,6 +427,7 @@ app.whenReady().then(() => {
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
 });
+
 
 
 
