@@ -124,6 +124,30 @@
   <dialog id="detailDialog">
     <article><header><h2 id="detailTitle"></h2><button id="detailClose" class="icon-button" aria-label="Close"><img src="icons/close.svg" alt=""></button></header><pre id="detailContent"></pre></article>
   </dialog>
+  <dialog id="skillsDialog">
+    <article class="skills-browser">
+      <header>
+        <div><h2>Skills</h2><p>Manage installed skills and install official marketplace skills.</p></div>
+        <button id="skillsClose" class="icon-button" aria-label="Close"><img src="icons/close.svg" alt=""></button>
+      </header>
+      <div class="skills-browser-body">
+        <aside class="skills-browser-nav" id="skillsBrowserNav">
+          <button class="skill-nav active" data-skills-view="installed">Installed</button>
+          <button class="skill-nav" data-skills-view="marketplace">Marketplace</button>
+        </aside>
+        <section class="skills-browser-main">
+          <div class="skills-browser-toolbar">
+            <button id="skillsBackButton" class="skill-back" type="button" hidden>&lt;</button>
+            <div>
+              <h3 id="skillsPaneTitle">Installed</h3>
+              <p id="skillsPaneSubtitle">Skills available to GolDid right now.</p>
+            </div>
+          </div>
+          <div id="skillsPaneContent" class="skills-pane-content"></div>
+        </section>
+      </div>
+    </article>
+  </dialog>
   <dialog id="deleteDialog">
     <article>
       <header><div><h2>Delete conversation?</h2><p id="deleteDescription"></p></div></header>

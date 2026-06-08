@@ -1,11 +1,18 @@
 'use strict';
 
-const state = { snapshot: null, messages: [], sessionId: null, activeTab: 'sessions', requestId: null, streamingNode: null, toolEvents: new Map(), skillRegistry: null };
+const state = { snapshot: null, messages: [], sessionId: null, activeTab: 'sessions', requestId: null, streamingNode: null, toolEvents: new Map(), skillRegistry: null, installingSkills: new Set(), skillsDialogView: 'installed', skillsDialogDetail: null };
 let sessionPendingDelete = null;
 let commandIndex = 0;
 let visibleCommands = [];
 const $ = (id) => document.getElementById(id);
 const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+const skillSlug = (value) => String(value || '')
+  .trim()
+  .toLowerCase()
+  .replace(/['"]/g, '')
+  .replace(/[^a-z0-9]+/g, '-')
+  .replace(/^-+|-+$/g, '')
+  .slice(0, 64);
 
 if (window.marked) {
   // Render code fences as our styled blocks; keep the language label.
@@ -67,7 +74,7 @@ const commands = [
   { usage: '/model', description: 'Open model settings', run: () => openSettings() },
   { usage: '/providers', description: 'Open provider settings', run: () => openSettings() },
   { usage: '/sessions', description: 'Show saved conversations', run: () => selectSidebarTab('sessions') },
-  { usage: '/skills', description: 'Show installed skills', run: () => selectSidebarTab('skills') },
+  { usage: '/skills', description: 'Open the skills manager', run: () => openSkillsDialog() },
   { usage: '/memory', description: 'Show persistent memory', run: () => selectSidebarTab('memory') },
   { usage: '/agent on', description: 'Enable agent tools', run: () => setAgent(true) },
   { usage: '/agent off', description: 'Disable agent tools', run: () => setAgent(false) },
@@ -88,6 +95,10 @@ const commands = [
 ];
 
 function selectSidebarTab(name) {
+  if (name === 'skills') {
+    openSkillsDialog();
+    return;
+  }
   const tab = document.querySelector(`.tab[data-tab="${name}"]`);
   if (!tab) return;
   document.querySelectorAll('.tab').forEach((item) => item.classList.toggle('active', item === tab));
@@ -283,20 +294,8 @@ function renderSidebar() {
       $('deleteDialog').showModal();
     }));
   } else if (state.activeTab === 'skills') {
-    const installedIds = new Set(state.snapshot.skills.map((item) => item.name.toLowerCase()));
-    const marketplace = state.skillRegistry?.skills || [];
-    root.innerHTML = '<div class="section-label">Installed skills</div>' + (state.snapshot.skills.map((item, index) =>
-      `<button class="list-item" style="--item-index:${index}" data-skill="${escapeHtml(item.name)}"><strong>${escapeHtml(item.name)}</strong><small>${escapeHtml(item.description)}</small></button>`
-    ).join('') || '<p class="section-label">No compatible skills found</p>') +
-    '<div class="section-label">Skill marketplace</div>' +
-    (marketplace.length ? marketplace.map((item, index) => {
-      const installed = installedIds.has(item.name.toLowerCase()) || installedIds.has(item.id.toLowerCase());
-      return `<div class="market-skill" style="--item-index:${index}"><button class="list-item" data-market-skill="${escapeHtml(item.id)}"><strong>${escapeHtml(item.name)}</strong><small>${escapeHtml(item.description)}</small></button><button class="install-skill" data-install-skill="${escapeHtml(item.id)}" ${installed ? 'disabled' : ''}>${installed ? 'Installed' : 'Install'}</button></div>`;
-    }).join('') : '<p class="section-label">Loading marketplace...</p>');
-    root.querySelectorAll('[data-skill]').forEach((button) => button.addEventListener('click', () => showSkill(button.dataset.skill)));
-    root.querySelectorAll('[data-market-skill]').forEach((button) => button.addEventListener('click', () => openSkillPage(button.dataset.marketSkill)));
-    root.querySelectorAll('[data-install-skill]').forEach((button) => button.addEventListener('click', () => installSkill(button.dataset.installSkill)));
-    if (!state.skillRegistry) loadSkillRegistry();
+    root.innerHTML = '<div class="section-label">Skills</div><button class="list-item" data-open-skills-manager><strong>Open skills manager</strong><small>Installed skills, marketplace, install, and uninstall</small></button>';
+    root.querySelector('[data-open-skills-manager]')?.addEventListener('click', () => openSkillsDialog());
   } else {
     root.innerHTML = '<div class="section-label">Persistent memory</div>' + Object.values(state.snapshot.memory).map((item, index) =>
       `<button class="list-item" style="--item-index:${index}" data-memory="${escapeHtml(item.target)}"><strong>${escapeHtml(item.target)}</strong><small>${item.entry_count} entries · ${escapeHtml(item.usage)}</small></button>`
@@ -312,6 +311,7 @@ async function loadSkillRegistry() {
     state.skillRegistry = { skills: [{ id: 'error', name: 'Marketplace unavailable', description: error.message || String(error) }] };
   }
   if (state.activeTab === 'skills') renderSidebar();
+  if ($('skillsDialog')?.open) renderSkillsDialog();
 }
 
 function openSkillPage(id) {
@@ -319,14 +319,189 @@ function openSkillPage(id) {
   window.goldid.openPath(`${base}/skills/${encodeURIComponent(id)}/`);
 }
 
-async function installSkill(id) {
+async function openSkillsDialog(view = state.skillsDialogView || 'installed') {
+  state.skillsDialogView = view;
+  state.skillsDialogDetail = null;
+  if (!state.skillRegistry) loadSkillRegistry().catch(() => {});
+  await refresh();
+  renderSkillsDialog();
+  if (!$('skillsDialog').open) $('skillsDialog').showModal();
+}
+
+function installedSkillKeys() {
+  const keys = new Set();
+  for (const item of state.snapshot?.skills || []) {
+    keys.add(String(item.name || '').toLowerCase());
+    keys.add(String(item.slug || '').toLowerCase());
+    keys.add(skillSlug(item.name));
+  }
+  return keys;
+}
+
+function isMarketplaceInstalled(item) {
+  const keys = installedSkillKeys();
+  return keys.has(String(item.name || '').toLowerCase()) || keys.has(skillSlug(item.name)) || keys.has(String(item.id || '').toLowerCase());
+}
+
+function setSkillsView(view) {
+  state.skillsDialogView = view;
+  state.skillsDialogDetail = null;
+  renderSkillsDialog();
+}
+
+function renderSkillsDialog() {
+  if (!state.snapshot) return;
+  document.querySelectorAll('[data-skills-view]').forEach((button) =>
+    button.classList.toggle('active', button.dataset.skillsView === state.skillsDialogView)
+  );
+  $('skillsBackButton').hidden = !state.skillsDialogDetail;
+  $('skillsBrowserNav').hidden = Boolean(state.skillsDialogDetail);
+  $('skillsBrowserNav').parentElement.classList.toggle('detail-mode', Boolean(state.skillsDialogDetail));
+  if (state.skillsDialogDetail) {
+    renderSkillDetailPane();
+    return;
+  }
+  if (state.skillsDialogView === 'marketplace') renderMarketplacePane();
+  else renderInstalledPane();
+}
+
+function renderInstalledPane() {
+  $('skillsPaneTitle').textContent = 'Installed';
+  $('skillsPaneSubtitle').textContent = 'Skills available to GolDid right now.';
+  const skills = state.snapshot.skills || [];
+  $('skillsPaneContent').innerHTML = skills.length ? `<div class="skills-manager-list">${skills.map((skill, index) => `
+    <button class="skills-manager-card" style="--item-index:${index}" data-installed-detail="${escapeHtml(skill.name)}">
+      <div>
+        <small>${escapeHtml(skill.author || skill.source || 'Installed')}</small>
+        <h4>${escapeHtml(skill.name)}</h4>
+        <p>${escapeHtml(skill.description)}</p>
+      </div>
+      <span class="secondary-button">Open</span>
+    </button>
+  `).join('')}</div>` : '<p class="empty-skills">No installed skills yet.</p>';
+  $('skillsPaneContent').querySelectorAll('[data-installed-detail]').forEach((button) =>
+    button.addEventListener('click', () => showInstalledSkillDetail(button.dataset.installedDetail))
+  );
+}
+
+function renderMarketplacePane() {
+  $('skillsPaneTitle').textContent = 'Marketplace';
+  $('skillsPaneSubtitle').textContent = 'Official skills that are not installed yet.';
+  const all = state.skillRegistry?.skills || [];
+  const skills = all.filter((skill) => !isMarketplaceInstalled(skill));
+  $('skillsPaneContent').innerHTML = skills.length ? `<div class="skills-manager-list">${skills.map((skill, index) => `
+    <button class="skills-manager-card" style="--item-index:${index}" data-market-detail="${escapeHtml(skill.id)}">
+      <div>
+        <small>Skill ${escapeHtml(skill.id)} · ${escapeHtml(skill.author || 'Goldid')}</small>
+        <h4>${escapeHtml(skill.name)}</h4>
+        <p>${escapeHtml(skill.description)}</p>
+      </div>
+      <span class="secondary-button">View</span>
+    </button>
+  `).join('')}</div>` : '<p class="empty-skills">All recommended skills are installed.</p>';
+  $('skillsPaneContent').querySelectorAll('[data-market-detail]').forEach((button) =>
+    button.addEventListener('click', () => showMarketplaceSkillDetail(button.dataset.marketDetail))
+  );
+}
+
+async function showInstalledSkillDetail(name) {
+  const skill = state.snapshot.skills.find((item) => item.name === name);
+  if (!skill) return;
+  state.skillsDialogDetail = { type: 'installed', skill, body: 'Loading...' };
+  renderSkillsDialog();
   try {
-    showNotice(`Installing skill ${id}...`);
-    const result = await window.goldid.installSkill(id);
-    $('detailContent').textContent = `Installed ${result.name}\n\n${result.dir}`;
+    state.skillsDialogDetail.body = await window.goldid.viewSkill(name);
+  } catch (error) {
+    state.skillsDialogDetail.body = error.message || String(error);
+  }
+  renderSkillsDialog();
+}
+
+async function showMarketplaceSkillDetail(id) {
+  state.skillsDialogDetail = { type: 'marketplace', item: { id }, body: 'Loading Version.js...' };
+  renderSkillsDialog();
+  try {
+    const detail = await window.goldid.marketSkillDetail(id);
+    state.skillsDialogDetail = { type: 'marketplace', item: detail, body: detail.skillPreview || '' };
+  } catch (error) {
+    state.skillsDialogDetail = { type: 'marketplace', item: { id, name: `Skill ${id}` }, body: error.message || String(error), error: true };
+  }
+  renderSkillsDialog();
+}
+
+function renderSkillDetailPane() {
+  const detail = state.skillsDialogDetail;
+  const isInstalled = detail.type === 'installed';
+  const item = isInstalled ? detail.skill : detail.item;
+  $('skillsPaneTitle').textContent = item.name || `Skill ${item.id}`;
+  $('skillsPaneSubtitle').textContent = isInstalled ? 'Installed folder' : 'Marketplace skill';
+  const action = isInstalled
+    ? `<button class="danger-button" data-uninstall-skill="${escapeHtml(item.name)}">Uninstall</button>`
+    : `<button class="primary-button" data-install-skill-detail="${escapeHtml(item.id)}" ${isMarketplaceInstalled(item) || detail.error ? 'disabled' : ''}>${isMarketplaceInstalled(item) ? 'Installed' : 'Install'}</button>`;
+  $('skillsPaneContent').innerHTML = `
+    <div class="skill-detail-meta">
+      <span><strong>Author:</strong> ${escapeHtml(item.author || 'Unknown')}</span>
+      <span><strong>Version:</strong> ${escapeHtml(item.version || 'Not specified')}</span>
+      <span><strong>Folder:</strong> ${escapeHtml(isInstalled ? item.slug || skillSlug(item.name) : skillSlug(item.name || item.id))}</span>
+      ${item.usage ? `<span><strong>Usage:</strong> ${escapeHtml(item.usage)}</span>` : ''}
+      ${item.modelTested?.length ? `<span><strong>Models tested:</strong> ${escapeHtml(item.modelTested.join(', '))}</span>` : ''}
+    </div>
+    <div class="skills-manager-actions">${action}</div>
+    <pre class="skill-detail-body">${escapeHtml(detail.body || '')}</pre>
+  `;
+  $('skillsPaneContent').querySelector('[data-uninstall-skill]')?.addEventListener('click', (event) =>
+    uninstallSkill(event.currentTarget.dataset.uninstallSkill)
+  );
+  $('skillsPaneContent').querySelector('[data-install-skill-detail]')?.addEventListener('click', (event) =>
+    installSkill(event.currentTarget.dataset.installSkillDetail)
+  );
+}
+
+function goBackSkillsDialog() {
+  state.skillsDialogDetail = null;
+  renderSkillsDialog();
+}
+
+async function installSkill(id) {
+  const clean = String(id || '').trim();
+  if (!clean || state.installingSkills.has(clean)) return;
+  state.installingSkills.add(clean);
+  if (state.activeTab === 'skills') renderSidebar();
+  if ($('skillsDialog').open) renderSkillsDialog();
+  try {
+    if (!$('skillsDialog').open) showNotice(`Installing skill ${clean}...`);
+    const result = await window.goldid.installSkill(clean);
     await refresh();
     state.skillRegistry = null;
     await loadSkillRegistry();
+    const installedName = result.name || clean;
+    const installedSlug = result.slug || skillSlug(installedName);
+    const matching = state.snapshot.skills.find((item) =>
+      item.name === installedName || item.slug === installedSlug || item.slug === skillSlug(installedName)
+    );
+    if (matching) {
+      if ($('skillsDialog').open) await showInstalledSkillDetail(matching.name);
+      else await showSkill(matching.name);
+    } else {
+      $('detailTitle').textContent = installedName;
+      $('detailContent').textContent = `Installed ${installedName}.\n\nUse it from the Installed skills list, or open it with /skill ${installedSlug}.`;
+      if (!$('skillsDialog').open) $('detailDialog').showModal();
+    }
+  } catch (error) {
+    showNotice(error.message || String(error));
+  } finally {
+    state.installingSkills.delete(clean);
+    if (state.activeTab === 'skills') renderSidebar();
+    if ($('skillsDialog').open) renderSkillsDialog();
+  }
+}
+
+async function uninstallSkill(name) {
+  try {
+    await window.goldid.uninstallSkill(name);
+    await refresh();
+    state.skillsDialogDetail = null;
+    renderSkillsDialog();
   } catch (error) {
     showNotice(error.message || String(error));
   }
@@ -706,6 +881,11 @@ $('messageInput').addEventListener('keydown', (event) => {
 document.addEventListener('click', (event) => {
   if (!event.target.closest('.composer')) $('commandMenu').classList.remove('open');
 });
+$('skillsClose').addEventListener('click', () => $('skillsDialog').close());
+$('skillsBackButton').addEventListener('click', goBackSkillsDialog);
+document.querySelectorAll('[data-skills-view]').forEach((button) =>
+  button.addEventListener('click', () => setSkillsView(button.dataset.skillsView))
+);
 $('settingsForm').addEventListener('submit', async (event) => {
   if (event.submitter?.value === 'cancel') return;
   event.preventDefault();

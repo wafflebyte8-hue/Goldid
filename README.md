@@ -80,7 +80,7 @@ Running the installer manually still works too.
 the desktop app shares the same encrypted config, memories, skills, and sessions
 as the CLI.
 
-### What's new in 0.16.0.2
+### What's new in 0.16.1
 
 - refreshed the CLI, desktop app, and website with the same cleaner dark UI
 - refreshed the CLI startup banner with a cleaner gold/amber ASCII panel
@@ -706,5 +706,8 @@ issue.
 ## License
 
 MIT
+
+
+
 
 
