@@ -351,18 +351,45 @@ function setSkillsView(view) {
 
 function renderSkillsDialog() {
   if (!state.snapshot) return;
-  document.querySelectorAll('[data-skills-view]').forEach((button) =>
-    button.classList.toggle('active', button.dataset.skillsView === state.skillsDialogView)
-  );
+  renderSkillsExplorer();
   $('skillsBackButton').hidden = !state.skillsDialogDetail;
-  $('skillsBrowserNav').hidden = Boolean(state.skillsDialogDetail);
-  $('skillsBrowserNav').parentElement.classList.toggle('detail-mode', Boolean(state.skillsDialogDetail));
   if (state.skillsDialogDetail) {
     renderSkillDetailPane();
     return;
   }
   if (state.skillsDialogView === 'marketplace') renderMarketplacePane();
   else renderInstalledPane();
+}
+
+function renderSkillsExplorer() {
+  const nav = $('skillsBrowserNav');
+  if (!state.skillsDialogDetail) {
+    nav.innerHTML = `
+      <button class="skill-nav ${state.skillsDialogView === 'installed' ? 'active' : ''}" data-skills-view="installed">Installed</button>
+      <button class="skill-nav ${state.skillsDialogView === 'marketplace' ? 'active' : ''}" data-skills-view="marketplace">Marketplace</button>
+    `;
+    nav.querySelectorAll('[data-skills-view]').forEach((button) =>
+      button.addEventListener('click', () => setSkillsView(button.dataset.skillsView))
+    );
+    return;
+  }
+  if (state.skillsDialogView === 'marketplace') {
+    const skills = (state.skillRegistry?.skills || []).filter((skill) => !isMarketplaceInstalled(skill));
+    nav.innerHTML = '<div class="section-label">Marketplace</div>' + (skills.map((skill, index) =>
+      `<button class="skill-nav explorer ${state.skillsDialogDetail?.item?.id === skill.id ? 'active' : ''}" style="--item-index:${index}" data-market-explorer="${escapeHtml(skill.id)}">${escapeHtml(skill.name)}</button>`
+    ).join('') || '<p class="section-label">All installed</p>');
+    nav.querySelectorAll('[data-market-explorer]').forEach((button) =>
+      button.addEventListener('click', () => showMarketplaceSkillDetail(button.dataset.marketExplorer))
+    );
+    return;
+  }
+  const skills = state.snapshot.skills || [];
+  nav.innerHTML = '<div class="section-label">Installed</div>' + (skills.map((skill, index) =>
+    `<button class="skill-nav explorer ${state.skillsDialogDetail?.skill?.name === skill.name ? 'active' : ''}" style="--item-index:${index}" data-installed-explorer="${escapeHtml(skill.name)}">${escapeHtml(skill.name)}</button>`
+  ).join('') || '<p class="section-label">No skills</p>');
+  nav.querySelectorAll('[data-installed-explorer]').forEach((button) =>
+    button.addEventListener('click', () => showInstalledSkillDetail(button.dataset.installedExplorer))
+  );
 }
 
 function renderInstalledPane() {
