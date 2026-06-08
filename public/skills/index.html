@@ -35,7 +35,7 @@
         root.innerHTML = skills.map((skill) => `
           <article class="skill-card">
             <div>
-              <p class="skill-meta">Skill ${escapeHtml(skill.id)}</p>
+              <p class="skill-meta">Skill ${escapeHtml(skill.id)} · ${escapeHtml(skill.author || 'Unknown author')}</p>
               <h3>${escapeHtml(skill.name)}</h3>
               <p>${escapeHtml(skill.description)}</p>
             </div>
