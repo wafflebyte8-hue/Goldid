@@ -427,6 +427,10 @@ use:
 gd skill install 1929
 ```
 
+registry installs still use the 4-digit id as the command input, but the folder
+saved under `~/.goldid/skills/goldid/` uses the skill name slug, like
+`project-maintainer`, instead of the numeric id.
+
 third-party skills are instructions, NOT trusted code. read them before you use
 them. GolDid won't auto-run Hermes inline-shell expressions — any command a skill
 wants still goes through normal `shell` approval.

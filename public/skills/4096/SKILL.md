@@ -2,7 +2,7 @@
 name: Security Checker
 description: Use when a user wants code, configuration, scripts, dependencies, or release artifacts checked for practical security risks.
 version: 1.0.0
-author: GolDid
+author: Goldid
 license: MIT
 tags: [security, audit, hardening]
 ---

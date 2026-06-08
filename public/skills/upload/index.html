@@ -20,7 +20,7 @@
     <section class="skill-hero">
       <p class="eyebrow">Skill upload</p>
       <h1>Validate two files.</h1>
-      <p class="lead">Upload `SKILL.md` and `Version.js` to check that a skill package is ready for GolDid. If it passes, email both files for moderation. Approved skills are added to the public registry.</p>
+      <p class="lead">Upload `SKILL.md` and `Version.js` to check that a skill package is ready for GolDid. If it passes, email both files for moderation. Approved skills are added to the public registry. The Goldid author name is reserved for official skills.</p>
       <form class="upload-form" id="skillUploadForm">
         <label>SKILL.md<input id="skillFile" type="file" accept=".md,text/markdown,text/plain" required></label>
         <label>Version.js<input id="versionFile" type="file" accept=".js,text/javascript,text/plain" required></label>
@@ -44,6 +44,8 @@
       const re = new RegExp('^' + name + ':\\s*(.+)$', 'mi');
       return (text.match(re)?.[1] || '').replace(/^["']|["']$/g, '').trim();
     };
+    const RESERVED_AUTHORS = new Set(['goldid']);
+    const isReservedAuthor = (value) => RESERVED_AUTHORS.has(String(value || '').trim().toLowerCase());
     const parseVersionJs = (text) => {
       const match = String(text || '').match(/module\.exports\s*=\s*(\{[\s\S]*?\})\s*;?\s*$/m);
       if (!match) return {};
@@ -68,6 +70,7 @@
       if (!name) problems.push('Version.js needs Name, or SKILL.md needs name.');
       if (!description) problems.push('Version.js needs Description, or SKILL.md needs description.');
       if (!author) problems.push('Version.js needs Author, or SKILL.md needs author.');
+      if (isReservedAuthor(author)) problems.push('The author name Goldid is reserved for official GolDid skills. Use your own author name.');
       const slug = name ? name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 48) : 'your-skill-slug';
       const id = String(Math.floor(1000 + Math.random() * 9000));
       const entry = {

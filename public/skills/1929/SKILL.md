@@ -2,7 +2,7 @@
 name: Project Maintainer
 description: Use when a user wants a repository reviewed, maintained, cleaned up, released, or checked for practical engineering risks.
 version: 1.0.0
-author: GolDid
+author: Goldid
 license: MIT
 tags: [code-review, maintenance, release-notes]
 ---

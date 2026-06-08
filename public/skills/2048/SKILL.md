@@ -2,7 +2,7 @@
 name: Skill Creator
 description: Use when a user wants to create, update, publish, validate, or document a GolDid skill.
 version: 1.0.0
-author: GolDid
+author: Goldid
 license: MIT
 tags: [skills, documentation, metadata]
 ---

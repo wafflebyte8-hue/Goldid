@@ -798,6 +798,8 @@ idempotently creates, under `~/.goldid/skills`:
 - `/skill <name>` — inspect one skill's full instructions.
 - `/skill install <id>` — install a public skill from the hosted GolDid registry.
 - `gd skill install <id>` — one-shot form of the same installer.
+- Public installs still resolve by 4-digit id, but the installed folder uses the
+  skill-name slug, such as `project-maintainer`, instead of a numeric folder.
 - The model uses `skills_list` / `skill_view` tools at runtime.
 
 The catalog placed in the prompt contains only names + descriptions to keep the

@@ -5,9 +5,13 @@
       "id": "1929",
       "name": "Project Maintainer",
       "description": "Review a repository, summarize risks, propose fixes, and keep release notes tidy.",
-      "author": "GolDid",
+      "author": "Goldid",
       "version": "1.0.0",
-      "tags": ["code-review", "maintenance", "release-notes"],
+      "tags": [
+        "code-review",
+        "maintenance",
+        "release-notes"
+      ],
       "pageUrl": "/skills/1929/",
       "skillUrl": "/skills/1929/SKILL.md",
       "versionUrl": "/skills/1929/Version.js"
@@ -16,9 +20,13 @@
       "id": "2048",
       "name": "Skill Creator",
       "description": "Create or update portable GolDid skills with clear triggers, metadata, instructions, and verification checklists.",
-      "author": "GolDid",
+      "author": "Goldid",
       "version": "1.0.0",
-      "tags": ["skills", "documentation", "metadata"],
+      "tags": [
+        "skills",
+        "documentation",
+        "metadata"
+      ],
       "pageUrl": "/skills/2048/",
       "skillUrl": "/skills/2048/SKILL.md",
       "versionUrl": "/skills/2048/Version.js"
@@ -27,12 +35,256 @@
       "id": "4096",
       "name": "Security Checker",
       "description": "Inspect code, configs, scripts, and dependencies for practical security risks and unsafe defaults.",
-      "author": "GolDid",
+      "author": "Goldid",
       "version": "1.0.0",
-      "tags": ["security", "audit", "hardening"],
+      "tags": [
+        "security",
+        "audit",
+        "hardening"
+      ],
       "pageUrl": "/skills/4096/",
       "skillUrl": "/skills/4096/SKILL.md",
       "versionUrl": "/skills/4096/Version.js"
+    },
+    {
+      "id": "5001",
+      "name": "GolDid Provider Doctor",
+      "description": "Diagnose GolDid provider setup, model listing, API keys, local endpoints, and timeout issues.",
+      "author": "Goldid",
+      "version": "1.0.0",
+      "tags": [
+        "providers",
+        "debugging",
+        "config"
+      ],
+      "pageUrl": "/skills/5001/",
+      "skillUrl": "/skills/5001/SKILL.md",
+      "versionUrl": "/skills/5001/Version.js"
+    },
+    {
+      "id": "5002",
+      "name": "GolDid Desktop Launcher Fixer",
+      "description": "Fix GolDid desktop launch failures across Linux, Windows, and macOS packaging paths.",
+      "author": "Goldid",
+      "version": "1.0.0",
+      "tags": [
+        "desktop",
+        "electron",
+        "linux"
+      ],
+      "pageUrl": "/skills/5002/",
+      "skillUrl": "/skills/5002/SKILL.md",
+      "versionUrl": "/skills/5002/Version.js"
+    },
+    {
+      "id": "5003",
+      "name": "GolDid CLI Command Builder",
+      "description": "Add or repair GolDid CLI commands with consistent parsing, help text, docs, and desktop parity.",
+      "author": "Goldid",
+      "version": "1.0.0",
+      "tags": [
+        "cli",
+        "commands",
+        "ux"
+      ],
+      "pageUrl": "/skills/5003/",
+      "skillUrl": "/skills/5003/SKILL.md",
+      "versionUrl": "/skills/5003/Version.js"
+    },
+    {
+      "id": "5004",
+      "name": "GolDid Prompt Engineer",
+      "description": "Tune GolDid system prompts for cloud, local, native-tool, text-tool, and tools-off modes.",
+      "author": "Goldid",
+      "version": "1.0.0",
+      "tags": [
+        "prompt",
+        "agents",
+        "models"
+      ],
+      "pageUrl": "/skills/5004/",
+      "skillUrl": "/skills/5004/SKILL.md",
+      "versionUrl": "/skills/5004/Version.js"
+    },
+    {
+      "id": "5005",
+      "name": "GolDid Skill Publisher",
+      "description": "Publish GolDid skills with registry entries, detail pages, install commands, and metadata files.",
+      "author": "Goldid",
+      "version": "1.0.0",
+      "tags": [
+        "skills",
+        "marketplace",
+        "website"
+      ],
+      "pageUrl": "/skills/5005/",
+      "skillUrl": "/skills/5005/SKILL.md",
+      "versionUrl": "/skills/5005/Version.js"
+    },
+    {
+      "id": "5006",
+      "name": "GolDid Release Captain",
+      "description": "Perform GolDid version bumps, release notes, package metadata, docs, and visible UI version updates.",
+      "author": "Goldid",
+      "version": "1.0.0",
+      "tags": [
+        "release",
+        "versioning",
+        "docs"
+      ],
+      "pageUrl": "/skills/5006/",
+      "skillUrl": "/skills/5006/SKILL.md",
+      "versionUrl": "/skills/5006/Version.js"
+    },
+    {
+      "id": "5007",
+      "name": "GolDid Installer Maintainer",
+      "description": "Maintain GolDid setup, uninstall, desktop entries, PATH shims, permissions, and data-retention behavior.",
+      "author": "Goldid",
+      "version": "1.0.0",
+      "tags": [
+        "installer",
+        "setup",
+        "uninstall"
+      ],
+      "pageUrl": "/skills/5007/",
+      "skillUrl": "/skills/5007/SKILL.md",
+      "versionUrl": "/skills/5007/Version.js"
+    },
+    {
+      "id": "5008",
+      "name": "GolDid Website Editor",
+      "description": "Improve the GolDid static website, skill pages, upload flow, and public documentation UI.",
+      "author": "Goldid",
+      "version": "1.0.0",
+      "tags": [
+        "website",
+        "static-site",
+        "ui"
+      ],
+      "pageUrl": "/skills/5008/",
+      "skillUrl": "/skills/5008/SKILL.md",
+      "versionUrl": "/skills/5008/Version.js"
+    },
+    {
+      "id": "5009",
+      "name": "GolDid UI Polisher",
+      "description": "Upgrade GolDid desktop or web UI spacing, hierarchy, contrast, states, and responsive behavior.",
+      "author": "Goldid",
+      "version": "1.0.0",
+      "tags": [
+        "ui",
+        "desktop",
+        "accessibility"
+      ],
+      "pageUrl": "/skills/5009/",
+      "skillUrl": "/skills/5009/SKILL.md",
+      "versionUrl": "/skills/5009/Version.js"
+    },
+    {
+      "id": "5010",
+      "name": "GolDid Memory And Sessions Fixer",
+      "description": "Debug GolDid memory files, saved sessions, context loading, and stale state behavior.",
+      "author": "Goldid",
+      "version": "1.0.0",
+      "tags": [
+        "memory",
+        "sessions",
+        "state"
+      ],
+      "pageUrl": "/skills/5010/",
+      "skillUrl": "/skills/5010/SKILL.md",
+      "versionUrl": "/skills/5010/Version.js"
+    },
+    {
+      "id": "5011",
+      "name": "GolDid Tooling Hardener",
+      "description": "Audit and harden GolDid file, shell, web, image, and memory tool behavior.",
+      "author": "Goldid",
+      "version": "1.0.0",
+      "tags": [
+        "tools",
+        "sandbox",
+        "security"
+      ],
+      "pageUrl": "/skills/5011/",
+      "skillUrl": "/skills/5011/SKILL.md",
+      "versionUrl": "/skills/5011/Version.js"
+    },
+    {
+      "id": "5012",
+      "name": "GolDid Docs Writer",
+      "description": "Update GolDid README, complete documentation, commands, changelog-style notes, and user-facing examples.",
+      "author": "Goldid",
+      "version": "1.0.0",
+      "tags": [
+        "docs",
+        "readme",
+        "documentation"
+      ],
+      "pageUrl": "/skills/5012/",
+      "skillUrl": "/skills/5012/SKILL.md",
+      "versionUrl": "/skills/5012/Version.js"
+    },
+    {
+      "id": "5013",
+      "name": "GolDid Packaging Inspector",
+      "description": "Check GolDid npm, Electron, assets, icons, package files, and generated distributables.",
+      "author": "Goldid",
+      "version": "1.0.0",
+      "tags": [
+        "packaging",
+        "electron",
+        "npm"
+      ],
+      "pageUrl": "/skills/5013/",
+      "skillUrl": "/skills/5013/SKILL.md",
+      "versionUrl": "/skills/5013/Version.js"
+    },
+    {
+      "id": "5014",
+      "name": "GolDid Local Model Tuner",
+      "description": "Tune GolDid behavior for Ollama, LM Studio, vLLM, llama.cpp, and other local model servers.",
+      "author": "Goldid",
+      "version": "1.0.0",
+      "tags": [
+        "local-models",
+        "ollama",
+        "lmstudio"
+      ],
+      "pageUrl": "/skills/5014/",
+      "skillUrl": "/skills/5014/SKILL.md",
+      "versionUrl": "/skills/5014/Version.js"
+    },
+    {
+      "id": "5015",
+      "name": "GolDid Web Search Integrator",
+      "description": "Improve GolDid web-search behavior, source handling, freshness checks, and citation discipline.",
+      "author": "Goldid",
+      "version": "1.0.0",
+      "tags": [
+        "web",
+        "search",
+        "sources"
+      ],
+      "pageUrl": "/skills/5015/",
+      "skillUrl": "/skills/5015/SKILL.md",
+      "versionUrl": "/skills/5015/Version.js"
+    },
+    {
+      "id": "5016",
+      "name": "GolDid Regression Tester",
+      "description": "Plan and run targeted GolDid regression checks after code, UI, prompt, provider, or packaging changes.",
+      "author": "Goldid",
+      "version": "1.0.0",
+      "tags": [
+        "testing",
+        "qa",
+        "verification"
+      ],
+      "pageUrl": "/skills/5016/",
+      "skillUrl": "/skills/5016/SKILL.md",
+      "versionUrl": "/skills/5016/Version.js"
     }
   ]
 }
