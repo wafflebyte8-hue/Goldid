@@ -3,8 +3,8 @@
   "skills": [
     {
       "id": "1929",
-      "name": "Project Maintainer",
-      "description": "Review a repository, summarize risks, propose fixes, and keep release notes tidy.",
+      "name": "GolDid Project Maintainer",
+      "description": "Review a GolDid repository, summarize risks, propose fixes, and keep release notes tidy.",
       "author": "Goldid",
       "version": "1.0.0",
       "tags": [
@@ -18,7 +18,7 @@
     },
     {
       "id": "2048",
-      "name": "Skill Creator",
+      "name": "GolDid Skill Creator",
       "description": "Create or update portable GolDid skills with clear triggers, metadata, instructions, and verification checklists.",
       "author": "Goldid",
       "version": "1.0.0",
@@ -33,8 +33,8 @@
     },
     {
       "id": "4096",
-      "name": "Security Checker",
-      "description": "Inspect code, configs, scripts, and dependencies for practical security risks and unsafe defaults.",
+      "name": "GolDid Security Checker",
+      "description": "Inspect GolDid code, configs, scripts, and dependencies for practical security risks and unsafe defaults.",
       "author": "Goldid",
       "version": "1.0.0",
       "tags": [

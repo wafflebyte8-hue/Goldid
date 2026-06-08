@@ -5,7 +5,7 @@
 // with no comments inside the object and no trailing commas.
 module.exports = {
   "Author": "Goldid",
-  "Name": "Skill Creator",
+  "Name": "GolDid Skill Creator",
   "Description": "Create or update portable GolDid skills with clear triggers, metadata, instructions, and verification checklists.",
   "Usage": "Use when a user wants to create, update, publish, validate, or document a GolDid skill.",
   "Model_tested": ["gpt-5","claude-sonnet"]
