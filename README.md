@@ -80,7 +80,7 @@ Running the installer manually still works too.
 the desktop app shares the same encrypted config, memories, skills, and sessions
 as the CLI.
 
-### What's new in 0.16.4.1
+### What's new in 0.16.4.2
 
 - added chat naming modes with `/name never`, `/name auto`, and `/name always`
 - refreshed the CLI, desktop app, and website with the same cleaner dark UI
