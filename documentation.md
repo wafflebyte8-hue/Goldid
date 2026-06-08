@@ -11,7 +11,7 @@ sandboxing, and TPM-backed protection of your API keys.
 This document describes **everything** about GolDid in detail: architecture,
 every module, every command, every tool, the prompt system, the security model,
 the on-disk layout, and the desktop app. It reflects the current code
-(version `0.16.0`).
+(version `0.16.0.1`).
 
 ---
 
@@ -1009,5 +1009,6 @@ Keep `~/.goldid/sessions` private (it contains chat messages and tool results).
 
 ---
 
-_This documentation reflects GolDid `0.16.0`. Behavior described here is taken
+_This documentation reflects GolDid `0.16.0.1`. Behavior described here is taken
 from the source under `goldid.js`, `lib/`, and `desktop/`._
+
