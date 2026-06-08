@@ -11,6 +11,28 @@
       "pageUrl": "/skills/1929/",
       "skillUrl": "/skills/1929/SKILL.md",
       "versionUrl": "/skills/1929/Version.js"
+    },
+    {
+      "id": "2048",
+      "name": "Skill Creator",
+      "description": "Create or update portable GolDid skills with clear triggers, metadata, instructions, and verification checklists.",
+      "author": "GolDid",
+      "version": "1.0.0",
+      "tags": ["skills", "documentation", "metadata"],
+      "pageUrl": "/skills/2048/",
+      "skillUrl": "/skills/2048/SKILL.md",
+      "versionUrl": "/skills/2048/Version.js"
+    },
+    {
+      "id": "4096",
+      "name": "Security Checker",
+      "description": "Inspect code, configs, scripts, and dependencies for practical security risks and unsafe defaults.",
+      "author": "GolDid",
+      "version": "1.0.0",
+      "tags": ["security", "audit", "hardening"],
+      "pageUrl": "/skills/4096/",
+      "skillUrl": "/skills/4096/SKILL.md",
+      "versionUrl": "/skills/4096/Version.js"
     }
   ]
 }
