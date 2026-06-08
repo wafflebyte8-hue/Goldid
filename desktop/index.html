@@ -137,11 +137,14 @@
         </aside>
         <section class="skills-browser-main">
           <div class="skills-browser-toolbar">
-            <button id="skillsBackButton" class="skill-back" type="button" hidden>&lt;</button>
-            <div>
-              <h3 id="skillsPaneTitle">Installed</h3>
-              <p id="skillsPaneSubtitle">Skills available to GolDid right now.</p>
+            <div class="skills-toolbar-title">
+              <button id="skillsBackButton" class="skill-back" type="button" hidden aria-label="Back">&lt;</button>
+              <div>
+                <h3 id="skillsPaneTitle">Installed</h3>
+                <p id="skillsPaneSubtitle">Skills available to GolDid right now.</p>
+              </div>
             </div>
+            <div id="skillsPaneActions" class="skills-toolbar-actions"></div>
           </div>
           <div id="skillsPaneContent" class="skills-pane-content"></div>
         </section>

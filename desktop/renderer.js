@@ -353,6 +353,7 @@ function setSkillsView(view) {
 function clearSkillsPane() {
   $('skillsPaneTitle').textContent = '';
   $('skillsPaneSubtitle').textContent = '';
+  $('skillsPaneActions').innerHTML = '';
   $('skillsPaneContent').innerHTML = '';
   $('skillsBackButton').hidden = true;
   state.skillsPaneKey = 'blank';
@@ -434,6 +435,7 @@ function renderInstalledPane() {
   state.skillsPaneKey = key;
   $('skillsPaneTitle').textContent = 'Installed';
   $('skillsPaneSubtitle').textContent = 'Skills available to GolDid right now.';
+  $('skillsPaneActions').innerHTML = '';
   $('skillsPaneContent').innerHTML = skills.length ? `<div class="skills-manager-list">${skills.map((skill, index) => `
     <button class="skills-manager-card" style="--item-index:${index}" data-installed-detail="${escapeHtml(skill.name)}">
       <div>
@@ -452,6 +454,7 @@ function renderInstalledPane() {
 function renderMarketplacePane() {
   $('skillsPaneTitle').textContent = 'Marketplace';
   $('skillsPaneSubtitle').textContent = 'Official skills that are not installed yet.';
+  $('skillsPaneActions').innerHTML = '';
   if (!state.skillRegistry) {
     if (state.skillsPaneKey === 'marketplace-loading') return;
     state.skillsPaneKey = 'marketplace-loading';
@@ -514,6 +517,7 @@ function renderSkillDetailPane() {
   const action = isInstalled
     ? `<button class="danger-button" data-uninstall-skill="${escapeHtml(item.name)}">Uninstall</button>`
     : `<button class="primary-button" data-install-skill-detail="${escapeHtml(item.id)}" ${isMarketplaceInstalled(item) || detail.error ? 'disabled' : ''}>${isMarketplaceInstalled(item) ? 'Installed' : 'Install'}</button>`;
+  $('skillsPaneActions').innerHTML = action;
   $('skillsPaneContent').innerHTML = `
     <div class="skill-detail-meta">
       <span><strong>Author:</strong> ${escapeHtml(item.author || 'Unknown')}</span>
@@ -522,13 +526,12 @@ function renderSkillDetailPane() {
       ${item.usage ? `<span><strong>Usage:</strong> ${escapeHtml(item.usage)}</span>` : ''}
       ${item.modelTested?.length ? `<span><strong>Models tested:</strong> ${escapeHtml(item.modelTested.join(', '))}</span>` : ''}
     </div>
-    <div class="skills-manager-actions">${action}</div>
     <pre class="skill-detail-body">${escapeHtml(detail.body || '')}</pre>
   `;
-  $('skillsPaneContent').querySelector('[data-uninstall-skill]')?.addEventListener('click', (event) =>
+  $('skillsPaneActions').querySelector('[data-uninstall-skill]')?.addEventListener('click', (event) =>
     uninstallSkill(event.currentTarget.dataset.uninstallSkill)
   );
-  $('skillsPaneContent').querySelector('[data-install-skill-detail]')?.addEventListener('click', (event) =>
+  $('skillsPaneActions').querySelector('[data-install-skill-detail]')?.addEventListener('click', (event) =>
     installSkill(event.currentTarget.dataset.installSkillDetail)
   );
 }
@@ -536,6 +539,7 @@ function renderSkillDetailPane() {
 function goBackSkillsDialog() {
   state.skillsDialogDetail = null;
   state.skillsPaneKey = '';
+  $('skillsPaneActions').innerHTML = '';
   renderSkillsDialog();
 }
 

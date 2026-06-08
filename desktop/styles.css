@@ -182,11 +182,14 @@ dialog footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 
 .skill-nav.active { box-shadow: inset 3px 0 0 var(--gold); }
 .skill-nav.explorer { min-height: 38px; margin-bottom: 4px; font-size: 12px; font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; animation-delay: calc(var(--item-index, 0) * 18ms); }
 .skills-browser-main { display: grid; grid-template-rows: auto minmax(0, 1fr); min-width: 0; min-height: 0; }
-.skills-browser-toolbar { display: flex; align-items: center; gap: 12px; padding: 16px 18px; border-bottom: 1px solid var(--line-soft); animation: skills-pane-enter 240ms var(--ease-out) both; }
+.skills-browser-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 18px; border-bottom: 1px solid var(--line-soft); animation: skills-pane-enter 240ms var(--ease-out) both; }
+.skills-toolbar-title { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.skills-toolbar-title > div { min-width: 0; }
 .skills-browser-toolbar h3 { margin: 0; font-size: 17px; }
 .skills-browser-toolbar p { margin: 3px 0 0; color: var(--muted); font-size: 12px; }
-.skill-back { width: 36px; height: 36px; border: 1px solid var(--line); border-radius: 6px; background: #111824; color: var(--gold-strong); font-size: 20px; font-weight: 900; transition: transform 160ms var(--ease-spring), border-color 160ms ease, background-color 160ms ease; animation: skill-back-enter 200ms var(--ease-spring) both; }
-.skill-back:hover { border-color: var(--gold); background: #1c2432; transform: translateX(-2px) scale(1.04); }
+.skills-toolbar-actions { display: flex; justify-content: flex-end; align-items: center; gap: 8px; flex-shrink: 0; animation: detail-actions-enter 220ms var(--ease-out) both; }
+.skill-back { width: 32px; height: 32px; border: 1px solid var(--line); border-radius: 6px; background: transparent; color: var(--gold-strong); font-size: 18px; font-weight: 900; transition: transform 160ms var(--ease-spring), border-color 160ms ease, background-color 160ms ease; animation: skill-back-enter 200ms var(--ease-spring) both; }
+.skill-back:hover { border-color: var(--gold); background: #1c2432; transform: translateX(-2px); }
 .skill-back:active { transform: translateX(-4px) scale(.96); }
 .skills-pane-content { min-height: 0; overflow: auto; padding: 14px 18px 18px; animation: skills-pane-enter 240ms var(--ease-out) both; }
 .skills-manager-list { display: grid; gap: 10px; }
@@ -196,7 +199,6 @@ button.skills-manager-card:active { transform: translateY(0) scale(.99); }
 .skills-manager-card h4 { margin: 0 0 6px; font-size: 15px; }
 .skills-manager-card p { margin: 0; color: var(--muted); line-height: 1.45; }
 .skills-manager-card small { display: block; margin-bottom: 7px; color: var(--gold-strong); font-weight: 800; text-transform: uppercase; font-size: 11px; }
-.skills-manager-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; animation: detail-actions-enter 260ms var(--ease-out) 80ms both; }
 .skill-detail-meta { display: grid; gap: 8px; margin: 0 0 16px; color: var(--muted); animation: detail-meta-enter 260ms var(--ease-out) both; }
 .skill-detail-meta strong { color: var(--text); }
 .skill-detail-body { margin: 0; max-height: 420px; overflow: auto; white-space: pre-wrap; color: #d8d4c8; line-height: 1.55; border: 1px solid var(--line); border-radius: 8px; padding: 14px; background: #0e141e; animation: detail-body-enter 280ms var(--ease-out) 40ms both; }
