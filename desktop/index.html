@@ -43,6 +43,7 @@
               <option value="plan">Plan mode</option>
             </select>
           </label>
+          <button id="visualizerButton" class="secondary-button" type="button">Project graph</button>
           <button id="openDataButton" class="secondary-button"><img src="icons/folder.svg" alt="">Open data folder</button>
         </div>
       </header>
@@ -162,6 +163,22 @@
     <article>
       <header><div><h2>Delete conversation?</h2><p id="deleteDescription"></p></div></header>
       <footer><button id="cancelDeleteButton" class="secondary-button">Cancel</button><button id="confirmDeleteButton" class="danger-button">Delete</button></footer>
+    </article>
+  </dialog>
+  <dialog id="graphDialog">
+    <article class="graph-viewer">
+      <header>
+        <div><h2>Project graph</h2><p id="graphSummary">Repository file relationships.</p></div>
+        <button id="graphClose" class="icon-button" aria-label="Close"><img src="icons/close.svg" alt=""></button>
+      </header>
+      <div class="graph-toolbar">
+        <label>Search<input id="graphSearch" type="search" placeholder="Find a file or dependency"></label>
+        <button id="graphRefresh" class="secondary-button" type="button">Refresh</button>
+      </div>
+      <div class="graph-stage">
+        <canvas id="graphCanvas" width="1200" height="720" aria-label="3D project graph"></canvas>
+        <div id="graphTooltip" class="graph-tooltip" hidden></div>
+      </div>
     </article>
   </dialog>
   <script src="../node_modules/marked/lib/marked.umd.js"></script>

@@ -171,6 +171,16 @@ dialog footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 
 #detailDialog article { display: grid; grid-template-rows: auto minmax(0, 1fr); overflow: hidden; }
 #detailContent { min-height: 0; max-height: 60vh; overflow: auto; overscroll-behavior: contain; white-space: pre-wrap; color: #d8d4c8; line-height: 1.55; }
 #skillsDialog { width: min(980px, calc(100% - 32px)); }
+#graphDialog { width: min(1180px, calc(100% - 24px)); }
+#graphDialog article { overflow: hidden; }
+.graph-viewer { display: grid; grid-template-rows: auto auto minmax(0, 1fr); min-height: min(760px, calc(100vh - 34px)); padding: 0; }
+.graph-viewer > header { padding: 18px 20px 12px; border-bottom: 1px solid var(--line); }
+.graph-toolbar { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: end; padding: 12px 20px; border-bottom: 1px solid var(--line-soft); background: #111824; }
+.graph-toolbar label { margin: 0; }
+.graph-stage { position: relative; min-height: 0; background: radial-gradient(circle at 50% 42%, #1b2637 0, #0b1018 58%, #070b11 100%); }
+#graphCanvas { display: block; width: 100%; height: 100%; min-height: 520px; cursor: grab; }
+#graphCanvas:active { cursor: grabbing; }
+.graph-tooltip { position: absolute; z-index: 2; max-width: 360px; padding: 8px 10px; border: 1px solid #41516b; border-radius: 6px; background: #101722f2; color: var(--text); font-family: Consolas, "Cascadia Code", monospace; font-size: 12px; box-shadow: 0 14px 38px #0008; pointer-events: none; overflow-wrap: anywhere; }
 #skillsDialog article { overflow: hidden; }
 .skills-browser { display: grid; grid-template-rows: auto minmax(0, 1fr); min-height: min(720px, calc(100vh - 34px)); padding: 0; }
 .skills-browser > header { padding: 20px 20px 14px; border-bottom: 1px solid var(--line); animation: skills-header-enter 260ms var(--ease-out) both; }

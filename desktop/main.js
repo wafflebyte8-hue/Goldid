@@ -17,6 +17,7 @@ const sandbox = require('../lib/sandbox');
 const keystore = require('../lib/keystore');
 const agentmode = require('../lib/agentmode');
 const updater = require('../lib/updater');
+const projectGraph = require('../lib/project-graph');
 
 const VERSION = require('../package.json').version;
 
@@ -232,6 +233,7 @@ ipcMain.handle('skill:market-detail', (_, id) => skills.registrySkillDetail(id))
 ipcMain.handle('skill:install', (_, id) => skills.installFromRegistry(id));
 ipcMain.handle('skill:uninstall', (_, name) => skills.uninstallInstalled(name, process.cwd()));
 ipcMain.handle('path:open', (_, target) => shell.openPath(target));
+ipcMain.handle('project:graph', () => projectGraph.build(process.cwd()));
 ipcMain.on('tool:approval-response', (_, payload) => {
   const resolve = approvals.get(payload.id);
   if (!resolve) return;
@@ -324,6 +326,7 @@ ipcMain.handle('chat:send', async (event, input) => {
     skillsCatalog: skills.catalog(process.cwd()),
   });
   let finalText = '';
+  let ended = null;
   const responseStartedAt = Date.now();
 
   // Per-request abort controller so the renderer's Stop button can cancel.
@@ -356,7 +359,9 @@ ipcMain.handle('chat:send', async (event, input) => {
           throw e;
         }
         if (!result.toolCalls.length) {
-          finalText = result.text;
+          const parsed = parseEndChat(result.text);
+          finalText = parsed.text;
+          ended = parsed.ended;
           conversation.push({ role: 'assistant', content: result.text });
           break;
         }
@@ -381,7 +386,9 @@ ipcMain.handle('chat:send', async (event, input) => {
       if (cancelled()) break;
       const call = useTools ? tools.parseToolCall(text) : null;
       if (!call) {
-        finalText = text;
+        const parsed = parseEndChat(text);
+        finalText = parsed.text;
+        ended = parsed.ended;
         conversation.push({ role: 'assistant', content: text });
         event.sender.send('chat:delta', { requestId: input.requestId, text });
         break;
@@ -416,8 +423,19 @@ ipcMain.handle('chat:send', async (event, input) => {
       /* title generation is best effort */
     }
   }
-  return { sessionId, text: finalText, stopped, title: generatedTitle || saved.title };
+  return { sessionId, text: finalText, stopped, ended, title: generatedTitle || saved.title };
 });
+
+function parseEndChat(text) {
+  const raw = String(text || '');
+  const match = raw.match(/<end_chat(?:\s+reason=(?:"([^"]*)"|'([^']*)'))?\s*>\s*<\/end_chat>|<end_chat(?:\s+reason=(?:"([^"]*)"|'([^']*)'))?\s*\/>/i);
+  if (!match) return { text: raw, ended: null };
+  const reason = (match[1] || match[2] || match[3] || match[4] || 'ended').trim();
+  return {
+    text: raw.replace(match[0], '').trim(),
+    ended: { reason },
+  };
+}
 
 ipcMain.handle('chat:cancel', (_, requestId) => {
   const controller = activeRequests.get(requestId);
@@ -438,7 +456,6 @@ app.whenReady().then(() => {
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
 });
-
 
 
 

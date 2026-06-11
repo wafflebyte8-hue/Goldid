@@ -1,6 +1,7 @@
 'use strict';
 
-const state = { snapshot: null, messages: [], sessionId: null, activeTab: 'sessions', requestId: null, streamingNode: null, toolEvents: new Map(), skillRegistry: null, installingSkills: new Set(), skillsDialogView: 'installed', skillsDialogDetail: null, skillsExplorerKey: '', skillsPaneKey: '' };
+const state = { snapshot: null, messages: [], sessionId: null, activeTab: 'sessions', requestId: null, streamingNode: null, toolEvents: new Map(), skillRegistry: null, installingSkills: new Set(), skillsDialogView: 'installed', skillsDialogDetail: null, skillsExplorerKey: '', skillsPaneKey: '', chatEnded: null, graph: null };
+const graphView = { nodes: [], edges: [], query: '', zoom: 1, panX: 0, panY: 0, dragging: false, lastX: 0, lastY: 0, hover: null, raf: 0 };
 let sessionPendingDelete = null;
 let commandIndex = 0;
 let visibleCommands = [];
@@ -95,6 +96,7 @@ const commands = [
   { usage: '/providers', description: 'Open provider settings', run: () => openSettings() },
   { usage: '/sessions', description: 'Show saved conversations', run: () => selectSidebarTab('sessions') },
   { usage: '/skills', description: 'Open the skills manager', run: () => openSkillsDialog() },
+  { usage: '/graph', description: 'Open the 3D project visualizer', run: () => openGraphDialog() },
   { usage: '/name', description: 'Show chat naming mode', run: () => nameMode('') },
   { usage: '/name never', description: 'Disable generated chat names', run: () => nameMode('never') },
   { usage: '/name auto', description: 'Auto-name chats above 10 TPS', run: () => nameMode('auto') },
@@ -637,6 +639,8 @@ async function refresh() {
 async function loadSession(id) {
   const session = await window.goldid.loadSession(id);
   state.sessionId = session.id;
+  state.chatEnded = null;
+  $('messageInput').disabled = false;
   state.toolEvents.clear();
   state.messages = session.messages.filter((item) =>
     (item.role === 'user' || item.role === 'assistant') &&
@@ -663,10 +667,152 @@ function showMemory(target) {
 function newChat() {
   state.messages = [];
   state.sessionId = null;
+  state.chatEnded = null;
   state.toolEvents.clear();
   $('conversationTitle').textContent = 'New conversation';
+  $('messageInput').disabled = false;
   renderMessages();
   $('messageInput').focus();
+}
+
+async function openGraphDialog() {
+  $('graphDialog').showModal();
+  await loadGraph();
+}
+
+async function loadGraph() {
+  $('graphSummary').textContent = 'Scanning repository...';
+  try {
+    state.graph = await window.goldid.projectGraph();
+    initGraph(state.graph);
+    $('graphSummary').textContent = `${state.graph.nodes.length} files · ${state.graph.edges.length} connections`;
+  } catch (error) {
+    $('graphSummary').textContent = error.message || String(error);
+  }
+}
+
+function initGraph(graph) {
+  const canvas = $('graphCanvas');
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = Math.max(800, Math.floor(rect.width * devicePixelRatio));
+  canvas.height = Math.max(500, Math.floor(rect.height * devicePixelRatio));
+  const w = canvas.width / devicePixelRatio;
+  const h = canvas.height / devicePixelRatio;
+  const edgeCount = new Map();
+  (graph.edges || []).forEach((e) => {
+    edgeCount.set(e.source, (edgeCount.get(e.source) || 0) + 1);
+    edgeCount.set(e.target, (edgeCount.get(e.target) || 0) + 1);
+  });
+  graphView.nodes = (graph.nodes || []).map((n, i) => {
+    const angle = i * 2.399963;
+    const radius = 70 + Math.sqrt(i + 1) * 18;
+    return {
+      ...n,
+      x: Math.cos(angle) * radius,
+      y: Math.sin(angle) * radius,
+      z: ((i % 23) - 11) * 18,
+      vx: 0,
+      vy: 0,
+      vz: 0,
+      degree: edgeCount.get(n.id) || 0,
+    };
+  });
+  const byId = new Map(graphView.nodes.map((n) => [n.id, n]));
+  graphView.edges = (graph.edges || []).map((e) => ({ source: byId.get(e.source), target: byId.get(e.target) })).filter((e) => e.source && e.target);
+  graphView.panX = w / 2;
+  graphView.panY = h / 2;
+  graphView.zoom = 1;
+  startGraph();
+}
+
+function startGraph() {
+  cancelAnimationFrame(graphView.raf);
+  const tick = () => {
+    stepGraph();
+    drawGraph();
+    graphView.raf = requestAnimationFrame(tick);
+  };
+  tick();
+}
+
+function stepGraph() {
+  const nodes = graphView.nodes;
+  for (let i = 0; i < nodes.length; i++) {
+    const a = nodes[i];
+    for (let j = i + 1; j < nodes.length; j++) {
+      const b = nodes[j];
+      const dx = a.x - b.x, dy = a.y - b.y, dz = a.z - b.z;
+      const d2 = Math.max(80, dx * dx + dy * dy + dz * dz);
+      const f = 180 / d2;
+      a.vx += dx * f; a.vy += dy * f; a.vz += dz * f;
+      b.vx -= dx * f; b.vy -= dy * f; b.vz -= dz * f;
+    }
+  }
+  for (const e of graphView.edges) {
+    const a = e.source, b = e.target;
+    const dx = b.x - a.x, dy = b.y - a.y, dz = b.z - a.z;
+    a.vx += dx * 0.002; a.vy += dy * 0.002; a.vz += dz * 0.002;
+    b.vx -= dx * 0.002; b.vy -= dy * 0.002; b.vz -= dz * 0.002;
+  }
+  for (const n of nodes) {
+    n.vx += -n.x * 0.0008; n.vy += -n.y * 0.0008; n.vz += -n.z * 0.0008;
+    n.x += n.vx; n.y += n.vy; n.z += n.vz;
+    n.vx *= 0.86; n.vy *= 0.86; n.vz *= 0.86;
+  }
+}
+
+function projectNode(n, canvas) {
+  const depth = 700 / (700 + n.z);
+  return {
+    x: graphView.panX + n.x * graphView.zoom * depth,
+    y: graphView.panY + n.y * graphView.zoom * depth,
+    r: Math.max(3, (4 + Math.min(8, n.degree)) * graphView.zoom * depth),
+    depth,
+  };
+}
+
+function drawGraph() {
+  const canvas = $('graphCanvas');
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width / devicePixelRatio;
+  const h = canvas.height / devicePixelRatio;
+  ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+  ctx.clearRect(0, 0, w, h);
+  const q = graphView.query.toLowerCase();
+  const matches = q ? new Set(graphView.nodes.filter((n) => n.id.toLowerCase().includes(q)).map((n) => n.id)) : new Set();
+  for (const e of graphView.edges) {
+    const a = projectNode(e.source, canvas), b = projectNode(e.target, canvas);
+    const hot = matches.has(e.source.id) || matches.has(e.target.id);
+    ctx.strokeStyle = hot ? 'rgba(255, 211, 108, .78)' : 'rgba(114, 167, 255, .16)';
+    ctx.lineWidth = hot ? 1.8 : 0.8;
+    ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+  }
+  for (const n of [...graphView.nodes].sort((a, b) => a.z - b.z)) {
+    const p = projectNode(n, canvas);
+    const hot = matches.has(n.id) || graphView.hover === n;
+    ctx.fillStyle = hot ? '#ffd36c' : n.degree ? '#72a7ff' : '#aab4c4';
+    ctx.globalAlpha = hot || !q ? 1 : 0.28;
+    ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fill();
+    if (hot) {
+      ctx.fillStyle = '#f4f7fb';
+      ctx.font = '12px Consolas, monospace';
+      ctx.fillText(n.id, p.x + p.r + 6, p.y - 6);
+    }
+  }
+  ctx.globalAlpha = 1;
+}
+
+function focusGraphSearch(value) {
+  graphView.query = String(value || '').trim();
+  const found = graphView.nodes.find((n) => n.id.toLowerCase().includes(graphView.query.toLowerCase()));
+  if (found) {
+    const canvas = $('graphCanvas');
+    const w = canvas.width / devicePixelRatio;
+    const h = canvas.height / devicePixelRatio;
+    graphView.zoom = 1.9;
+    graphView.panX = w / 2 - found.x * graphView.zoom;
+    graphView.panY = h / 2 - found.y * graphView.zoom;
+  }
 }
 
 function openSettings() {
@@ -782,6 +928,10 @@ async function fetchImageModels() {
 
 async function sendMessage(event) {
   event.preventDefault();
+  if (state.chatEnded) {
+    showNotice(`This chat was ended by GolDid: ${state.chatEnded.reason || 'ended'}\n\nStart a new conversation to continue.`);
+    return;
+  }
   const input = $('messageInput');
   const text = input.value.trim();
   if (!text || $('sendButton').disabled) return;
@@ -811,6 +961,11 @@ async function sendMessage(event) {
     // Keep streamed/partial content if a stop produced no final text.
     last.content = result.text || last.content;
     if (result.stopped) last.content += last.content ? '\n\n_(stopped)_' : '_(stopped)_';
+    if (result.ended) {
+      state.chatEnded = result.ended;
+      last.content += last.content ? `\n\n_(chat ended: ${result.ended.reason})_` : `_(chat ended: ${result.ended.reason})_`;
+      $('messageInput').disabled = true;
+    }
     $('conversationTitle').textContent = result.title || state.messages.find((item) => item.role === 'user')?.content.slice(0, 64) || 'Conversation';
     await refresh();
   } catch (error) {
@@ -827,7 +982,7 @@ function setStreaming(on) {
   document.body.classList.toggle('is-streaming', on);
   $('sendButton').hidden = on;
   $('stopButton').hidden = !on;
-  $('messageInput').disabled = on;
+  $('messageInput').disabled = on || Boolean(state.chatEnded);
 }
 
 async function stopStreaming() {
@@ -899,10 +1054,66 @@ $('settingsButton').addEventListener('click', openSettings);
 $('providerSelect').addEventListener('change', syncProviderForm);
 $('fetchModelsButton').addEventListener('click', fetchModels);
 $('openDataButton').addEventListener('click', () => window.goldid.openPath(state.snapshot.dataDir));
+$('visualizerButton').addEventListener('click', openGraphDialog);
+$('graphClose').addEventListener('click', () => $('graphDialog').close());
+$('graphRefresh').addEventListener('click', loadGraph);
+$('graphSearch').addEventListener('input', (event) => focusGraphSearch(event.target.value));
 $('detailClose').addEventListener('click', () => $('detailDialog').close());
 $('inlineDeny').addEventListener('click', () => answerApproval(false));
 $('inlineApprove').addEventListener('click', () => answerApproval(true));
 $('stopButton').addEventListener('click', stopStreaming);
+
+$('graphCanvas').addEventListener('pointerdown', (event) => {
+  graphView.dragging = true;
+  graphView.lastX = event.clientX;
+  graphView.lastY = event.clientY;
+  $('graphCanvas').setPointerCapture(event.pointerId);
+});
+$('graphCanvas').addEventListener('pointermove', (event) => {
+  const canvas = $('graphCanvas');
+  if (graphView.dragging) {
+    graphView.panX += event.clientX - graphView.lastX;
+    graphView.panY += event.clientY - graphView.lastY;
+    graphView.lastX = event.clientX;
+    graphView.lastY = event.clientY;
+    return;
+  }
+  const rect = canvas.getBoundingClientRect();
+  const x = event.clientX - rect.left;
+  const y = event.clientY - rect.top;
+  let best = null;
+  let bestD = 18;
+  for (const n of graphView.nodes) {
+    const p = projectNode(n, canvas);
+    const d = Math.hypot(p.x - x, p.y - y);
+    if (d < bestD) { best = n; bestD = d; }
+  }
+  graphView.hover = best;
+  const tip = $('graphTooltip');
+  if (best) {
+    tip.hidden = false;
+    tip.textContent = best.id;
+    tip.style.left = `${Math.min(rect.width - 370, x + 14)}px`;
+    tip.style.top = `${Math.max(8, y + 14)}px`;
+  } else {
+    tip.hidden = true;
+  }
+});
+$('graphCanvas').addEventListener('pointerup', (event) => {
+  graphView.dragging = false;
+  try { $('graphCanvas').releasePointerCapture(event.pointerId); } catch {}
+});
+$('graphCanvas').addEventListener('wheel', (event) => {
+  event.preventDefault();
+  const scale = event.deltaY < 0 ? 1.12 : 0.9;
+  graphView.zoom = Math.min(4, Math.max(0.35, graphView.zoom * scale));
+}, { passive: false });
+$('graphCanvas').addEventListener('dblclick', () => {
+  if (graphView.hover) {
+    $('graphSearch').value = graphView.hover.id;
+    focusGraphSearch(graphView.hover.id);
+  }
+});
 
 // Esc denies a pending approval, or stops a running turn.
 document.addEventListener('keydown', (event) => {

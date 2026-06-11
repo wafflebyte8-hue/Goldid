@@ -20,6 +20,7 @@ contextBridge.exposeInMainWorld('goldid', {
   installSkill: (id) => ipcRenderer.invoke('skill:install', id),
   uninstallSkill: (name) => ipcRenderer.invoke('skill:uninstall', name),
   openPath: (target) => ipcRenderer.invoke('path:open', target),
+  projectGraph: () => ipcRenderer.invoke('project:graph'),
   sendChat: (input) => ipcRenderer.invoke('chat:send', input),
   cancelChat: (requestId) => ipcRenderer.invoke('chat:cancel', requestId),
   keystoreStatus: () => ipcRenderer.invoke('keystore:status'),
