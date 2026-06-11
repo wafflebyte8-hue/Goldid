@@ -80,6 +80,11 @@ Running the installer manually still works too.
 the desktop app shares the same encrypted config, memories, skills, and sessions
 as the CLI.
 
+### What's new in 0.17.0.3
+
+- Added an AI-facing `project_graph` tool so the assistant can inspect and
+  search the same repository graph exposed in the desktop visualizer.
+
 ### What's new in 0.17.0.2
 
 - Tightened the project visualizer layout into clustered spherical groups so
@@ -750,7 +755,6 @@ issue.
 ## License
 
 MIT
-
 
 
 
