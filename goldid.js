@@ -12,6 +12,10 @@
  * Styling is modeled on the Hermes Agent CLI.
  */
 
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+const { spawn } = require('child_process');
 const readline = require('readline');
 const config = require('./lib/config');
 const keystore = require('./lib/keystore');
@@ -29,9 +33,12 @@ const projectContext = require('./lib/context');
 const skills = require('./lib/skills');
 const migrate = require('./lib/migrate');
 const updater = require('./lib/updater');
+const projectGraph = require('./lib/project-graph');
+const graphhtml = require('./lib/graphhtml');
 
 const VERSION = require('./package.json').version;
 const TOOL_TAG = '<tool_call>';
+const END_TAG = '<end_chat';
 
 const toolsEnabled = (cfg) => cfg.agent?.tools !== false; // default on
 
@@ -282,10 +289,28 @@ async function streamAssistant(cfg, system, conversation, useTools, schemas) {
       emitLine(line);
     }
   };
-  // Move any newly-printable text (up to a tool-call tag) into `pending`.
-  const consume = (source) => {
-    const idx = source.indexOf(TOOL_TAG);
-    const printable = idx >= 0 ? source.slice(0, idx) : source;
+  // Move any newly-printable text into `pending`, stopping at a tool-call or
+  // end-chat control tag so neither ever flashes on screen. While streaming
+  // (final=false) a trailing partial tag is withheld too, in case the tag is
+  // split across deltas; the final flush prints everything except real tags.
+  const HOLD_TAGS = [TOOL_TAG, END_TAG];
+  const printableCut = (source, final) => {
+    let cut = source.length;
+    for (const tag of HOLD_TAGS) {
+      const idx = source.indexOf(tag);
+      if (idx >= 0 && idx < cut) cut = idx;
+    }
+    if (!final && cut === source.length) {
+      const maxTail = Math.min(TOOL_TAG.length, source.length);
+      for (let k = maxTail; k > 0; k--) {
+        const tail = source.slice(source.length - k);
+        if (HOLD_TAGS.some((tag) => tag.startsWith(tail))) return source.length - k;
+      }
+    }
+    return cut;
+  };
+  const consume = (source, final = false) => {
+    const printable = source.slice(0, printableCut(source, final));
     if (printable.length > emitted) {
       pending += printable.slice(emitted);
       emitted = printable.length;
@@ -321,7 +346,7 @@ async function streamAssistant(cfg, system, conversation, useTools, schemas) {
   const full = result.text || '';
   const toolCalls = result.toolCalls || [];
   if (!hold) {
-    consume(full); // pick up any text that arrived only in the final result
+    consume(full, true); // pick up any text that arrived only in the final result
     if (pending.length) {
       emitLine(pending); // flush the trailing partial line
       pending = '';
@@ -449,6 +474,7 @@ async function handleChat(text, conversation, ctx) {
   const turnStart = conversation.length;
   conversation.push({ role: 'user', content: text });
   const responseStartedAt = Date.now();
+  let endedReason = null; // set when the model emits the <end_chat .../> token
 
   // Unlimited tool-calling: loop until the model produces a final answer with no
   // tool call. The model controls termination — there is no fixed step cap.
@@ -484,7 +510,14 @@ async function handleChat(text, conversation, ctx) {
     conversation.push({ role: 'assistant', content: full });
     const call = useTools ? tools.parseToolCall(full) : null;
     if (!call) {
-      if (!shown) showAnswer(full); // held-back content that wasn't a tool call
+      // Smart chat closure: the streamed output already withheld the control
+      // token; here we detect it, show only the farewell text, and flag the
+      // closure for after the session is saved.
+      const closing = tools.parseEndChat(full);
+      if (closing.ended) endedReason = closing.ended.reason;
+      // Held-back content that wasn't a tool call. A token-only reply has no
+      // farewell text to show — the closure panel below covers it.
+      if (!shown && (!closing.ended || closing.text)) showAnswer(closing.ended ? closing.text : full);
       break;
     }
     const result = await runTool(call, ctx);
@@ -509,6 +542,20 @@ async function handleChat(text, conversation, ctx) {
     } catch (e) {
       ui.warning('Could not save session: ' + e.message);
     }
+  }
+  if (endedReason) {
+    ui.panel(
+      [
+        ui.kv('reason', ui.amber(endedReason)),
+        '',
+        ui.dim('GolDid closed this conversation. The chat was saved and a fresh'),
+        ui.dim('session was started - type a message to begin again.'),
+      ],
+      { title: ui.gold(`${ui.symbols.diamond} Chat ended`), border: ui.amber, maxWidth: 92 }
+    );
+    conversation.length = 0;
+    ctx.sessionId = sessions.newId();
+    loadConversationMemory(ctx);
   }
   console.log('');
 }
@@ -1165,6 +1212,54 @@ async function updateCmd(args) {
   }
 }
 
+// Open a file with the OS default handler (used for the exported graph HTML).
+function openExternal(file) {
+  const opts = { detached: true, stdio: 'ignore', windowsHide: true };
+  const child =
+    process.platform === 'win32' ? spawn('cmd', ['/c', 'start', '', file], opts)
+    : process.platform === 'darwin' ? spawn('open', [file], opts)
+    : spawn('xdg-open', [file], opts);
+  child.on('error', () => {});
+  child.unref();
+}
+
+/**
+ * /graph [path] — scan the project into a 3D file graph (same data as the
+ * desktop visualizer and the project_graph tool), export it as a standalone
+ * HTML page, and open it in the default browser.
+ */
+function graphCmd(args) {
+  const target = path.resolve(args.join(' ').trim() || process.cwd());
+  ui.info(`Scanning ${target} ...`);
+  let data;
+  try {
+    data = projectGraph.build(target);
+  } catch (e) {
+    return ui.error('Could not scan the project: ' + e.message);
+  }
+  if (!data.nodes.length) return ui.warning('No source files found to graph.');
+  const file = path.join(os.tmpdir(), `goldid-graph-${Date.now()}.html`);
+  try {
+    fs.writeFileSync(file, graphhtml.build(data));
+  } catch (e) {
+    return ui.error('Could not write the graph page: ' + e.message);
+  }
+  openExternal(file);
+  ui.panel(
+    [
+      ui.kv('project', ui.gold(ui.clip(target, 72))),
+      ui.kv('files', ui.amber(String(data.nodes.length))),
+      ui.kv('links', ui.amber(String(data.edges.length))),
+      ui.kv('page', ui.dim(ui.clip(file, 72))),
+      '',
+      ui.dim('opened in your browser - drag to rotate, scroll to zoom, type to search.'),
+      ui.dim('the desktop app has the same view under "Project graph".'),
+    ],
+    { title: ui.gold('3D project graph'), maxWidth: 100 }
+  );
+  console.log('');
+}
+
 function printHelp() {
   const rows = [
     ['/setup [provider]', 'configure provider, key/URL, and model'],
@@ -1190,6 +1285,7 @@ function printHelp() {
     ['/delete-session <id>', 'delete a saved conversation'],
     ['/skills', 'list compatible installed skills'],
     ['/skill <name|install id>', 'inspect or install one skill'],
+    ['/graph [path]', 'open the 3D project graph in a browser'],
     ['/migrate [source]', 'import Hermes/OpenClaw data'],
     ['/remember [target] <text>', 'save memory/user/personality'],
     ['/forget [target] <text>', 'remove a memory entry'],
@@ -1251,6 +1347,7 @@ const slash = {
   'delete-session': { run: (args, ctx) => deleteSession(args, ctx) },
   skills: { run: () => showSkills() },
   skill: { run: (args, ctx) => showSkill(args, ctx) },
+  graph: { run: (args) => graphCmd(args) },
   migrate: { run: (args, ctx) => migrateCmd(args, ctx) },
   remember: { run: (args, ctx) => rememberCmd(args, ctx) },
   forget: { run: (args, ctx) => forgetCmd(args, ctx) },
@@ -1445,7 +1542,7 @@ function repl(ctx) {
 const UTILITY = new Set([
   'setup', 'use', 'model', 'models', 'providers', 'key', 'url',
   'agent', 'mode', 'sandbox', 'image', 'keystore', 'tools', 'soul', 'memory', 'remember', 'forget', 'config',
-  'update',
+  'update', 'graph',
   'sessions', 'session', 'name', 'resume', 'delete-session',
   'skills', 'skill',
   'migrate',

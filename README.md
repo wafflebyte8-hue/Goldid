@@ -80,6 +80,19 @@ Running the installer manually still works too.
 the desktop app shares the same encrypted config, memories, skills, and sessions
 as the CLI.
 
+### What's new in 0.17.1
+
+- the CLI now handles model-initiated chat termination too: when GolDid ends a
+  chat, the terminal shows a "Chat ended" panel with the reason, saves the
+  conversation, and starts a fresh session (previously the raw `<end_chat/>`
+  control token could leak into terminal output and the chat kept going)
+- added `/graph [path]` to the CLI: exports the same 3D project graph as the
+  desktop visualizer to a standalone offline HTML page (search box included)
+  and opens it in your default browser — `gd graph` works one-shot too
+- graph nodes now carry file sizes, shown in the exported page's tooltips
+- the `<end_chat/>` token parser is shared between the CLI and desktop app
+  instead of being desktop-only
+
 ### What's new in 0.17.0.5
 
 - Fixed a visual bug in the desktop project graph where nodes rendered in reverse

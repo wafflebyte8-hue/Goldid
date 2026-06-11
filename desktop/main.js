@@ -359,7 +359,7 @@ ipcMain.handle('chat:send', async (event, input) => {
           throw e;
         }
         if (!result.toolCalls.length) {
-          const parsed = parseEndChat(result.text);
+          const parsed = tools.parseEndChat(result.text);
           finalText = parsed.text;
           ended = parsed.ended;
           conversation.push({ role: 'assistant', content: result.text });
@@ -386,7 +386,7 @@ ipcMain.handle('chat:send', async (event, input) => {
       if (cancelled()) break;
       const call = useTools ? tools.parseToolCall(text) : null;
       if (!call) {
-        const parsed = parseEndChat(text);
+        const parsed = tools.parseEndChat(text);
         finalText = parsed.text;
         ended = parsed.ended;
         conversation.push({ role: 'assistant', content: text });
@@ -426,17 +426,6 @@ ipcMain.handle('chat:send', async (event, input) => {
   }
   return { sessionId, text: finalText, stopped, ended, title: generatedTitle || saved.title };
 });
-
-function parseEndChat(text) {
-  const raw = String(text || '');
-  const match = raw.match(/<end_chat(?:\s+reason=(?:"([^"]*)"|'([^']*)'))?\s*>\s*<\/end_chat>|<end_chat(?:\s+reason=(?:"([^"]*)"|'([^']*)'))?\s*\/>/i);
-  if (!match) return { text: raw, ended: null };
-  const reason = (match[1] || match[2] || match[3] || match[4] || 'ended').trim();
-  return {
-    text: raw.replace(match[0], '').trim(),
-    ended: { reason },
-  };
-}
 
 ipcMain.handle('chat:cancel', (_, requestId) => {
   const controller = activeRequests.get(requestId);

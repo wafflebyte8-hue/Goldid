@@ -11,7 +11,7 @@ sandboxing, and TPM-backed protection of your API keys.
 This document describes **everything** about GolDid in detail: architecture,
 every module, every command, every tool, the prompt system, the security model,
 the on-disk layout, and the desktop app. It reflects the current code
-(version `0.17.0.5`).
+(version `0.17.1`).
 
 ---
 
@@ -440,6 +440,7 @@ back.
 | `find_files`     | No       | Recursively find files by name/substring/wildcard.                  |
 | `search_text`    | No       | Recursively search text files for a string.                         |
 | `web_search`     | No       | Search the web (DuckDuckGo) — titles, URLs, snippets.               |
+| `project_graph`  | No       | Inspect the repository file graph: summary, search, or neighbors.   |
 | `generate_image` | **Yes**  | Generate an image from a prompt and save it to a file.              |
 | `write_file`     | **Yes**  | Create or overwrite a text file.                                    |
 | `shell`          | **Yes**  | Run a shell command (60s timeout, 1 MB output cap).                 |
@@ -874,6 +875,7 @@ subcommands.
 | `/delete-session <id>`         | Delete a saved conversation.                       |
 | `/skills`                      | List compatible installed skills.                  |
 | `/skill <name\|install id>`    | Inspect or install one skill.                      |
+| `/graph [path]`                | Open the 3D project graph in the default browser.  |
 | `/migrate [source]`            | Import Hermes/OpenClaw data.                       |
 | `/remember [target] <text>`    | Save to memory/user/personality.                   |
 | `/forget [target] <text>`      | Remove a memory entry.                             |
@@ -1014,7 +1016,7 @@ Keep `~/.goldid/sessions` private (it contains chat messages and tool results).
 
 ---
 
-_This documentation reflects GolDid `0.17.0.4`. Behavior described here is taken
+_This documentation reflects GolDid `0.17.1`. Behavior described here is taken
 from the source under `goldid.js`, `lib/`, and `desktop/`._
 
 
