@@ -1,7 +1,7 @@
 'use strict';
 
 const state = { snapshot: null, messages: [], sessionId: null, activeTab: 'sessions', requestId: null, streamingNode: null, toolEvents: new Map(), skillRegistry: null, installingSkills: new Set(), skillsDialogView: 'installed', skillsDialogDetail: null, skillsExplorerKey: '', skillsPaneKey: '', chatEnded: null, graph: null };
-const graphView = { nodes: [], edges: [], query: '', zoom: 1, panX: 0, panY: 0, dragging: false, lastX: 0, lastY: 0, hover: null, raf: 0 };
+const graphView = { nodes: [], edges: [], query: '', zoom: 1, panX: 0, panY: 0, panZ: 0, rotX: 0, rotY: 0, rotZ: 0, dragging: false, dragMode: 'rotate', lastX: 0, lastY: 0, hover: null, raf: 0 };
 let sessionPendingDelete = null;
 let commandIndex = 0;
 let visibleCommands = [];
@@ -776,7 +776,12 @@ function initGraph(graph) {
   graphView.edges = rawEdges.map((e) => ({ source: byId.get(e.source), target: byId.get(e.target) })).filter((e) => e.source && e.target);
   graphView.panX = w / 2;
   graphView.panY = h / 2;
+  graphView.panZ = 0;
+  graphView.rotX = -0.35;
+  graphView.rotY = 0.45;
+  graphView.rotZ = 0;
   graphView.zoom = 1.25;
+  syncGraphControls();
   startGraph();
 }
 
@@ -820,13 +825,33 @@ function stepGraph() {
   }
 }
 
+function transformedPoint(n) {
+  let x = n.x;
+  let y = n.y;
+  let z = n.z + graphView.panZ;
+  const cx = Math.cos(graphView.rotX), sx = Math.sin(graphView.rotX);
+  const cy = Math.cos(graphView.rotY), sy = Math.sin(graphView.rotY);
+  const cz = Math.cos(graphView.rotZ), sz = Math.sin(graphView.rotZ);
+  let y1 = y * cx - z * sx;
+  let z1 = y * sx + z * cx;
+  y = y1; z = z1;
+  let x1 = x * cy + z * sy;
+  z1 = -x * sy + z * cy;
+  x = x1; z = z1;
+  x1 = x * cz - y * sz;
+  y1 = x * sz + y * cz;
+  return { x: x1, y: y1, z };
+}
+
 function projectNode(n, canvas) {
-  const depth = 520 / (520 + n.z);
+  const p3 = transformedPoint(n);
+  const depth = 560 / Math.max(120, 560 + p3.z);
   return {
-    x: graphView.panX + n.x * graphView.zoom * depth,
-    y: graphView.panY + n.y * graphView.zoom * depth,
+    x: graphView.panX + p3.x * graphView.zoom * depth,
+    y: graphView.panY + p3.y * graphView.zoom * depth,
     r: Math.max(3, (4 + Math.min(8, n.degree)) * graphView.zoom * depth),
     depth,
+    z: p3.z,
   };
 }
 
@@ -846,7 +871,7 @@ function drawGraph() {
     ctx.lineWidth = hot ? 1.8 : 0.8;
     ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
   }
-  for (const n of [...graphView.nodes].sort((a, b) => a.z - b.z)) {
+  for (const n of [...graphView.nodes].sort((a, b) => transformedPoint(a).z - transformedPoint(b).z)) {
     const p = projectNode(n, canvas);
     const hot = matches.has(n.id) || graphView.hover === n;
     ctx.fillStyle = hot ? '#ffd36c' : n.degree ? '#72a7ff' : '#aab4c4';
@@ -869,9 +894,33 @@ function focusGraphSearch(value) {
     const w = canvas.width / devicePixelRatio;
     const h = canvas.height / devicePixelRatio;
     graphView.zoom = 2.2;
-    graphView.panX = w / 2 - found.x * graphView.zoom;
-    graphView.panY = h / 2 - found.y * graphView.zoom;
+    const p = projectNode(found, canvas);
+    graphView.panX += w / 2 - p.x;
+    graphView.panY += h / 2 - p.y;
+    syncGraphControls();
   }
+}
+
+function syncGraphControls() {
+  const deg = (rad) => String(Math.round(rad * 180 / Math.PI));
+  if (!$('graphRotX')) return;
+  $('graphRotX').value = deg(graphView.rotX);
+  $('graphRotY').value = deg(graphView.rotY);
+  $('graphRotZ').value = deg(graphView.rotZ);
+  $('graphMoveX').value = String(Math.round(graphView.panX - $('graphCanvas').width / devicePixelRatio / 2));
+  $('graphMoveY').value = String(Math.round(graphView.panY - $('graphCanvas').height / devicePixelRatio / 2));
+  $('graphMoveZ').value = String(Math.round(graphView.panZ));
+}
+
+function applyGraphControls() {
+  const rad = (deg) => Number(deg || 0) * Math.PI / 180;
+  const canvas = $('graphCanvas');
+  graphView.rotX = rad($('graphRotX').value);
+  graphView.rotY = rad($('graphRotY').value);
+  graphView.rotZ = rad($('graphRotZ').value);
+  graphView.panX = canvas.width / devicePixelRatio / 2 + Number($('graphMoveX').value || 0);
+  graphView.panY = canvas.height / devicePixelRatio / 2 + Number($('graphMoveY').value || 0);
+  graphView.panZ = Number($('graphMoveZ').value || 0);
 }
 
 function openSettings() {
@@ -1117,6 +1166,9 @@ $('visualizerButton').addEventListener('click', openGraphDialog);
 $('graphClose').addEventListener('click', () => $('graphDialog').close());
 $('graphRefresh').addEventListener('click', loadGraph);
 $('graphSearch').addEventListener('input', (event) => focusGraphSearch(event.target.value));
+['graphRotX', 'graphRotY', 'graphRotZ', 'graphMoveX', 'graphMoveY', 'graphMoveZ'].forEach((id) => {
+  $(id).addEventListener('input', applyGraphControls);
+});
 $('detailClose').addEventListener('click', () => $('detailDialog').close());
 $('inlineDeny').addEventListener('click', () => answerApproval(false));
 $('inlineApprove').addEventListener('click', () => answerApproval(true));
@@ -1124,6 +1176,7 @@ $('stopButton').addEventListener('click', stopStreaming);
 
 $('graphCanvas').addEventListener('pointerdown', (event) => {
   graphView.dragging = true;
+  graphView.dragMode = event.shiftKey ? 'pan' : (event.altKey || event.button === 2 ? 'roll' : 'rotate');
   graphView.lastX = event.clientX;
   graphView.lastY = event.clientY;
   $('graphCanvas').setPointerCapture(event.pointerId);
@@ -1131,10 +1184,21 @@ $('graphCanvas').addEventListener('pointerdown', (event) => {
 $('graphCanvas').addEventListener('pointermove', (event) => {
   const canvas = $('graphCanvas');
   if (graphView.dragging) {
-    graphView.panX += event.clientX - graphView.lastX;
-    graphView.panY += event.clientY - graphView.lastY;
+    const dx = event.clientX - graphView.lastX;
+    const dy = event.clientY - graphView.lastY;
+    if (graphView.dragMode === 'pan') {
+      graphView.panX += dx;
+      graphView.panY += dy;
+    } else if (graphView.dragMode === 'roll') {
+      graphView.rotZ += dx * 0.01;
+      graphView.panZ += dy * 2;
+    } else {
+      graphView.rotY += dx * 0.01;
+      graphView.rotX += dy * 0.01;
+    }
     graphView.lastX = event.clientX;
     graphView.lastY = event.clientY;
+    syncGraphControls();
     return;
   }
   const rect = canvas.getBoundingClientRect();
@@ -1164,9 +1228,15 @@ $('graphCanvas').addEventListener('pointerup', (event) => {
 });
 $('graphCanvas').addEventListener('wheel', (event) => {
   event.preventDefault();
-  const scale = event.deltaY < 0 ? 1.12 : 0.9;
-  graphView.zoom = Math.min(4, Math.max(0.35, graphView.zoom * scale));
+  if (event.ctrlKey) {
+    const scale = event.deltaY < 0 ? 1.12 : 0.9;
+    graphView.zoom = Math.min(4, Math.max(0.35, graphView.zoom * scale));
+  } else {
+    graphView.panZ = Math.min(900, Math.max(-900, graphView.panZ - event.deltaY));
+    syncGraphControls();
+  }
 }, { passive: false });
+$('graphCanvas').addEventListener('contextmenu', (event) => event.preventDefault());
 $('graphCanvas').addEventListener('dblclick', () => {
   if (graphView.hover) {
     $('graphSearch').value = graphView.hover.id;

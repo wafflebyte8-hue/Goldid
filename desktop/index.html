@@ -173,6 +173,14 @@
       </header>
       <div class="graph-toolbar">
         <label>Search<input id="graphSearch" type="search" placeholder="Find a file or dependency"></label>
+        <div class="graph-controls" aria-label="3D camera controls">
+          <label>RX<input id="graphRotX" type="range" min="-180" max="180" value="0"></label>
+          <label>RY<input id="graphRotY" type="range" min="-180" max="180" value="0"></label>
+          <label>RZ<input id="graphRotZ" type="range" min="-180" max="180" value="0"></label>
+          <label>X<input id="graphMoveX" type="range" min="-600" max="600" value="0"></label>
+          <label>Y<input id="graphMoveY" type="range" min="-600" max="600" value="0"></label>
+          <label>Z<input id="graphMoveZ" type="range" min="-900" max="900" value="0"></label>
+        </div>
         <button id="graphRefresh" class="secondary-button" type="button">Refresh</button>
       </div>
       <div class="graph-stage">

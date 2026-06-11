@@ -175,8 +175,11 @@ dialog footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 
 #graphDialog article { overflow: hidden; }
 .graph-viewer { display: grid; grid-template-rows: auto auto minmax(0, 1fr); min-height: min(760px, calc(100vh - 34px)); padding: 0; }
 .graph-viewer > header { padding: 18px 20px 12px; border-bottom: 1px solid var(--line); }
-.graph-toolbar { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: end; padding: 12px 20px; border-bottom: 1px solid var(--line-soft); background: #111824; }
+.graph-toolbar { display: grid; grid-template-columns: minmax(220px, 1fr) minmax(360px, 1.6fr) auto; gap: 10px; align-items: end; padding: 12px 20px; border-bottom: 1px solid var(--line-soft); background: #111824; }
 .graph-toolbar label { margin: 0; }
+.graph-controls { display: grid; grid-template-columns: repeat(6, minmax(54px, 1fr)); gap: 8px; align-items: end; }
+.graph-controls label { display: grid; gap: 5px; color: var(--muted); font-size: 11px; font-weight: 800; }
+.graph-controls input { width: 100%; height: 24px; padding: 0; accent-color: var(--gold); }
 .graph-stage { position: relative; min-height: 0; background: radial-gradient(circle at 50% 42%, #1b2637 0, #0b1018 58%, #070b11 100%); }
 #graphCanvas { display: block; width: 100%; height: 100%; min-height: 520px; cursor: grab; }
 #graphCanvas:active { cursor: grabbing; }

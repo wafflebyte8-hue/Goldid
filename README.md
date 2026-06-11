@@ -80,6 +80,11 @@ Running the installer manually still works too.
 the desktop app shares the same encrypted config, memories, skills, and sessions
 as the CLI.
 
+### What's new in 0.17.0.4
+
+- Upgraded the project visualizer camera controls with 3-axis rotation and
+  3-axis movement instead of screen-only panning.
+
 ### What's new in 0.17.0.3
 
 - Added an AI-facing `project_graph` tool so the assistant can inspect and
@@ -755,7 +760,6 @@ issue.
 ## License
 
 MIT
-
 
 
 
