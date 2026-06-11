@@ -80,6 +80,13 @@ Running the installer manually still works too.
 the desktop app shares the same encrypted config, memories, skills, and sessions
 as the CLI.
 
+### What's new in 0.17.0
+
+- Added model-controlled chat termination for user-requested endings,
+  harassment, protocol violations, and safety stops.
+- Added the desktop Project graph visualizer for searching, zooming, and
+  inspecting repository file relationships in a 3D node graph.
+
 ### What's new in 0.16.5.1
 
 - fixed the desktop app failing to start after updating to 0.16.5 ("GolDid
@@ -733,7 +740,6 @@ issue.
 ## License
 
 MIT
-
 
 
 
