@@ -414,6 +414,7 @@ ipcMain.handle('chat:send', async (event, input) => {
         cfg,
         conversation,
         startedAt: responseStartedAt,
+        currentTitle: saved.title,
       });
       if (named.title) {
         saved = sessions.rename(sessionId, named.title);
@@ -456,7 +457,6 @@ app.whenReady().then(() => {
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
 });
-
 
 
 

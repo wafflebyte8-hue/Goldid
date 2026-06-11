@@ -80,6 +80,11 @@ Running the installer manually still works too.
 the desktop app shares the same encrypted config, memories, skills, and sessions
 as the CLI.
 
+### What's new in 0.17.0.1
+
+- Fixed chat auto-naming so an existing generated or manually edited title is
+  not replaced after every new message.
+
 ### What's new in 0.17.0
 
 - Added model-controlled chat termination for user-requested endings,
@@ -740,7 +745,6 @@ issue.
 ## License
 
 MIT
-
 
 
 

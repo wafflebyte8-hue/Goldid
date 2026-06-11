@@ -500,6 +500,7 @@ async function handleChat(text, conversation, ctx) {
         cfg,
         conversation,
         startedAt: responseStartedAt,
+        currentTitle: saved.title,
       });
       if (named.title) {
         saved = sessions.rename(ctx.sessionId, named.title);
@@ -1489,7 +1490,6 @@ if (require.main === module) {
 }
 
 module.exports = { main };
-
 
 
 
