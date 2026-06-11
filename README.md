@@ -80,6 +80,11 @@ Running the installer manually still works too.
 the desktop app shares the same encrypted config, memories, skills, and sessions
 as the CLI.
 
+### What's new in 0.17.0.2
+
+- Tightened the project visualizer layout into clustered spherical groups so
+  connected file neighborhoods appear closer together.
+
 ### What's new in 0.17.0.1
 
 - Fixed chat auto-naming so an existing generated or manually edited title is
@@ -745,7 +750,6 @@ issue.
 ## License
 
 MIT
-
 
 
 

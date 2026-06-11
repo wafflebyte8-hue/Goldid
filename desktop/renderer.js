@@ -691,6 +691,46 @@ async function loadGraph() {
   }
 }
 
+function graphClusters(nodes, edges) {
+  const byId = new Map(nodes.map((n) => [n.id, n]));
+  const adj = new Map(nodes.map((n) => [n.id, new Set()]));
+  edges.forEach((e) => {
+    if (!adj.has(e.source) || !adj.has(e.target)) return;
+    adj.get(e.source).add(e.target);
+    adj.get(e.target).add(e.source);
+  });
+  const seen = new Set();
+  const clusters = [];
+  for (const node of nodes) {
+    if (seen.has(node.id)) continue;
+    const queue = [node.id];
+    const ids = [];
+    seen.add(node.id);
+    while (queue.length) {
+      const id = queue.shift();
+      ids.push(id);
+      for (const next of adj.get(id) || []) {
+        if (seen.has(next)) continue;
+        seen.add(next);
+        queue.push(next);
+      }
+    }
+    clusters.push(ids.map((id) => byId.get(id)).filter(Boolean));
+  }
+  return clusters.sort((a, b) => b.length - a.length);
+}
+
+function spherePoint(index, total, radius) {
+  const i = index + 0.5;
+  const phi = Math.acos(1 - 2 * i / Math.max(1, total));
+  const theta = Math.PI * (1 + Math.sqrt(5)) * i;
+  return {
+    x: Math.cos(theta) * Math.sin(phi) * radius,
+    y: Math.sin(theta) * Math.sin(phi) * radius,
+    z: Math.cos(phi) * radius,
+  };
+}
+
 function initGraph(graph) {
   const canvas = $('graphCanvas');
   const rect = canvas.getBoundingClientRect();
@@ -703,25 +743,40 @@ function initGraph(graph) {
     edgeCount.set(e.source, (edgeCount.get(e.source) || 0) + 1);
     edgeCount.set(e.target, (edgeCount.get(e.target) || 0) + 1);
   });
-  graphView.nodes = (graph.nodes || []).map((n, i) => {
-    const angle = i * 2.399963;
-    const radius = 70 + Math.sqrt(i + 1) * 18;
-    return {
-      ...n,
-      x: Math.cos(angle) * radius,
-      y: Math.sin(angle) * radius,
-      z: ((i % 23) - 11) * 18,
-      vx: 0,
-      vy: 0,
-      vz: 0,
-      degree: edgeCount.get(n.id) || 0,
-    };
+  const rawNodes = graph.nodes || [];
+  const rawEdges = graph.edges || [];
+  const clusters = graphClusters(rawNodes, rawEdges);
+  const clusterCount = Math.max(1, clusters.length);
+  const clusterShell = Math.min(260, 80 + Math.sqrt(rawNodes.length) * 11);
+  graphView.nodes = [];
+  clusters.forEach((cluster, clusterIndex) => {
+    const center = clusterCount === 1
+      ? { x: 0, y: 0, z: 0 }
+      : spherePoint(clusterIndex, clusterCount, clusterShell);
+    const radius = Math.max(18, Math.min(82, 12 + Math.sqrt(cluster.length) * 10));
+    cluster.forEach((n, i) => {
+      const local = spherePoint(i, cluster.length, radius);
+      graphView.nodes.push({
+        ...n,
+        x: center.x + local.x,
+        y: center.y + local.y,
+        z: center.z + local.z,
+        homeX: center.x + local.x,
+        homeY: center.y + local.y,
+        homeZ: center.z + local.z,
+        cluster: clusterIndex,
+        vx: 0,
+        vy: 0,
+        vz: 0,
+        degree: edgeCount.get(n.id) || 0,
+      });
+    });
   });
   const byId = new Map(graphView.nodes.map((n) => [n.id, n]));
-  graphView.edges = (graph.edges || []).map((e) => ({ source: byId.get(e.source), target: byId.get(e.target) })).filter((e) => e.source && e.target);
+  graphView.edges = rawEdges.map((e) => ({ source: byId.get(e.source), target: byId.get(e.target) })).filter((e) => e.source && e.target);
   graphView.panX = w / 2;
   graphView.panY = h / 2;
-  graphView.zoom = 1;
+  graphView.zoom = 1.25;
   startGraph();
 }
 
@@ -743,7 +798,7 @@ function stepGraph() {
       const b = nodes[j];
       const dx = a.x - b.x, dy = a.y - b.y, dz = a.z - b.z;
       const d2 = Math.max(80, dx * dx + dy * dy + dz * dz);
-      const f = 180 / d2;
+      const f = (a.cluster === b.cluster ? 34 : 90) / d2;
       a.vx += dx * f; a.vy += dy * f; a.vz += dz * f;
       b.vx -= dx * f; b.vy -= dy * f; b.vz -= dz * f;
     }
@@ -751,18 +806,22 @@ function stepGraph() {
   for (const e of graphView.edges) {
     const a = e.source, b = e.target;
     const dx = b.x - a.x, dy = b.y - a.y, dz = b.z - a.z;
-    a.vx += dx * 0.002; a.vy += dy * 0.002; a.vz += dz * 0.002;
-    b.vx -= dx * 0.002; b.vy -= dy * 0.002; b.vz -= dz * 0.002;
+    const pull = a.cluster === b.cluster ? 0.0045 : 0.0015;
+    a.vx += dx * pull; a.vy += dy * pull; a.vz += dz * pull;
+    b.vx -= dx * pull; b.vy -= dy * pull; b.vz -= dz * pull;
   }
   for (const n of nodes) {
-    n.vx += -n.x * 0.0008; n.vy += -n.y * 0.0008; n.vz += -n.z * 0.0008;
+    n.vx += (n.homeX - n.x) * 0.006;
+    n.vy += (n.homeY - n.y) * 0.006;
+    n.vz += (n.homeZ - n.z) * 0.006;
+    n.vx += -n.x * 0.0004; n.vy += -n.y * 0.0004; n.vz += -n.z * 0.0004;
     n.x += n.vx; n.y += n.vy; n.z += n.vz;
-    n.vx *= 0.86; n.vy *= 0.86; n.vz *= 0.86;
+    n.vx *= 0.78; n.vy *= 0.78; n.vz *= 0.78;
   }
 }
 
 function projectNode(n, canvas) {
-  const depth = 700 / (700 + n.z);
+  const depth = 520 / (520 + n.z);
   return {
     x: graphView.panX + n.x * graphView.zoom * depth,
     y: graphView.panY + n.y * graphView.zoom * depth,
@@ -809,7 +868,7 @@ function focusGraphSearch(value) {
     const canvas = $('graphCanvas');
     const w = canvas.width / devicePixelRatio;
     const h = canvas.height / devicePixelRatio;
-    graphView.zoom = 1.9;
+    graphView.zoom = 2.2;
     graphView.panX = w / 2 - found.x * graphView.zoom;
     graphView.panY = h / 2 - found.y * graphView.zoom;
   }
