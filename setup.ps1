@@ -115,6 +115,19 @@ try {
     throw 'Could not install the Electron desktop runtime.'
   }
 
+  # Electron 42+ no longer downloads its binary during npm install — it fetches
+  # lazily on first launch instead. Download it now so the desktop app works
+  # immediately (and offline), and so the shortcut check below sees the binary.
+  $electronBinary = Join-Path $InstallDir 'node_modules\electron\dist\electron.exe'
+  $electronInstaller = Join-Path $InstallDir 'node_modules\electron\install.js'
+  if (-not (Test-Path -LiteralPath $electronBinary) -and (Test-Path -LiteralPath $electronInstaller)) {
+    Write-Step 'Downloading the Electron desktop binary...'
+    & $node.Source $electronInstaller
+    if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $electronBinary)) {
+      throw 'Could not download the Electron desktop binary. Check your network and rerun setup.'
+    }
+  }
+
   $entryPoint = Join-Path $InstallDir 'goldid.js'
   $documents = [Environment]::GetFolderPath('MyDocuments')
   $profiles = @(

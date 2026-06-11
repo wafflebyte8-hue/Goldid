@@ -64,6 +64,17 @@ if [ "$is_mac" -eq 1 ]; then
 else
   step 'Installing desktop runtime...'
   ( cd "$INSTALL_DIR" && npm install --omit=dev --no-audit --no-fund ) || die 'Could not install the Electron desktop runtime.'
+
+  # Electron 42+ no longer downloads its binary during npm install — it fetches
+  # lazily on first launch instead. Download it now so the desktop app works
+  # immediately (and offline).
+  electron_binary="$INSTALL_DIR/node_modules/electron/dist/electron"
+  electron_installer="$INSTALL_DIR/node_modules/electron/install.js"
+  if [ ! -x "$electron_binary" ] && [ -f "$electron_installer" ]; then
+    step 'Downloading the Electron desktop binary...'
+    ( cd "$INSTALL_DIR" && node "$electron_installer" ) || die 'Could not download the Electron desktop binary. Check your network and rerun setup.'
+    [ -x "$electron_binary" ] || die 'Electron binary download finished but the binary is missing.'
+  fi
 fi
 
 step 'Registering the gd command...'

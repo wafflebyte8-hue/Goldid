@@ -80,6 +80,13 @@ Running the installer manually still works too.
 the desktop app shares the same encrypted config, memories, skills, and sessions
 as the CLI.
 
+### What's new in 0.16.5.1
+
+- fixed the desktop app failing to start after updating to 0.16.5 ("GolDid
+  desktop runtime is missing"): Electron 42 no longer downloads its binary
+  during `npm install`, so the installers now download it explicitly and the
+  desktop launchers fetch it automatically if it is missing
+
 ### What's new in 0.16.5
 
 - upgraded Electron from 36 to 42, which fixes a string of upstream security

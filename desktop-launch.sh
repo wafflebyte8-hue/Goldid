@@ -22,6 +22,15 @@ fi
 electron="$root/node_modules/electron/dist/electron"
 main="$root/desktop/main.js"
 
+# Electron 42+ downloads its binary on first use rather than at npm install
+# time. If it is missing (e.g. right after gd update), fetch it now.
+if [ ! -x "$electron" ] && [ -f "$root/node_modules/electron/install.js" ]; then
+  msg="Downloading the Electron desktop binary (first launch after an update)..."
+  echo "[GolDid] $msg"
+  log "$msg"
+  ( cd "$root" && node node_modules/electron/install.js ) >> "$log_file" 2>&1 || true
+fi
+
 if [ ! -x "$electron" ]; then
   msg="GolDid desktop runtime is missing. Run setup.sh or 'npm install'."
   echo "$msg" >&2
