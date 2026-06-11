@@ -785,6 +785,25 @@ function initGraph(graph) {
   startGraph();
 }
 
+function resizeGraph() {
+  const canvas = $('graphCanvas');
+  if (!canvas || !$('graphDialog').open) return;
+  const rect = canvas.getBoundingClientRect();
+  const nextWidth = Math.max(800, Math.floor(rect.width * devicePixelRatio));
+  const nextHeight = Math.max(500, Math.floor(rect.height * devicePixelRatio));
+  if (canvas.width !== nextWidth || canvas.height !== nextHeight) {
+    const oldW = canvas.width / devicePixelRatio;
+    const oldH = canvas.height / devicePixelRatio;
+    canvas.width = nextWidth;
+    canvas.height = nextHeight;
+    const newW = canvas.width / devicePixelRatio;
+    const newH = canvas.height / devicePixelRatio;
+    graphView.panX += (newW - oldW) / 2;
+    graphView.panY += (newH - oldH) / 2;
+    syncGraphControls();
+  }
+}
+
 function startGraph() {
   cancelAnimationFrame(graphView.raf);
   const tick = () => {
@@ -866,12 +885,12 @@ function drawGraph() {
   const matches = q ? new Set(graphView.nodes.filter((n) => n.id.toLowerCase().includes(q)).map((n) => n.id)) : new Set();
   for (const e of graphView.edges) {
     const a = projectNode(e.source, canvas), b = projectNode(e.target, canvas);
-    const hot = matches.has(e.source.id) || matches.has(e.target.id);
+    const hot = matches.has(e.source.id) || matches.has(e.target.id) || graphView.hover === e.source || graphView.hover === e.target;
     ctx.strokeStyle = hot ? 'rgba(255, 211, 108, .78)' : 'rgba(114, 167, 255, .16)';
     ctx.lineWidth = hot ? 1.8 : 0.8;
     ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
   }
-  for (const n of [...graphView.nodes].sort((a, b) => transformedPoint(a).z - transformedPoint(b).z)) {
+  for (const n of [...graphView.nodes].sort((a, b) => transformedPoint(b).z - transformedPoint(a).z)) {
     const p = projectNode(n, canvas);
     const hot = matches.has(n.id) || graphView.hover === n;
     ctx.fillStyle = hot ? '#ffd36c' : n.degree ? '#72a7ff' : '#aab4c4';
@@ -888,6 +907,7 @@ function drawGraph() {
 
 function focusGraphSearch(value) {
   graphView.query = String(value || '').trim();
+  if (!graphView.query) return;
   const found = graphView.nodes.find((n) => n.id.toLowerCase().includes(graphView.query.toLowerCase()));
   if (found) {
     const canvas = $('graphCanvas');
@@ -1412,6 +1432,8 @@ $('imageForm').addEventListener('submit', async (event) => {
   $('imageApiKeyInput').value = '';
   $('imageDialog').close();
 });
+
+window.addEventListener('resize', resizeGraph);
 
 refresh().catch((error) => {
   $('messages').innerHTML = `<div class="empty-state"><h2>Could not start GolDid</h2><p>${escapeHtml(error.message)}</p></div>`;

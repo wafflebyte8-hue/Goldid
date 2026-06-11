@@ -80,6 +80,15 @@ Running the installer manually still works too.
 the desktop app shares the same encrypted config, memories, skills, and sessions
 as the CLI.
 
+### What's new in 0.17.0.5
+
+- Fixed a visual bug in the desktop project graph where nodes rendered in reverse
+  depth order, causing closer nodes to be drawn behind further nodes.
+- Fixed a bug where clearing the project graph search box would violently pan
+  the camera to the first node in the array.
+- Added visual highlighting for edges connected to the currently hovered node
+  in the project graph.
+
 ### What's new in 0.17.0.4
 
 - Upgraded the project visualizer camera controls with 3-axis rotation and
