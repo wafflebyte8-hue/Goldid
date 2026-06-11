@@ -2,6 +2,7 @@
 
 const path = require('path');
 const fs = require('fs');
+const { pathToFileURL } = require('url');
 const { app, BrowserWindow, ipcMain, shell } = require('electron');
 const config = require('../lib/config');
 const providers = require('../lib/providers');
@@ -17,7 +18,7 @@ const keystore = require('../lib/keystore');
 const agentmode = require('../lib/agentmode');
 const updater = require('../lib/updater');
 
-const VERSION = '0.16.4.2';
+const VERSION = require('../package.json').version;
 
 // The GolDid desktop app supports Windows and Linux only. On macOS, use the CLI.
 if (process.platform === 'darwin') {
@@ -63,6 +64,9 @@ function createWindow() {
   mainWindow.loadFile(path.join(__dirname, 'index.html'));
   if (process.env.GOLDID_DESKTOP_SCREENSHOT) {
     mainWindow.webContents.once('did-finish-load', async () => {
+      // Always quit, even if the capture fails (e.g. no GPU compositing in a
+      // headless VM) — a hung test process is worse than a missing screenshot.
+      try {
       await new Promise((resolve) => setTimeout(resolve, 800));
       if (process.env.GOLDID_SCROLL_REPORT) {
         const report = await mainWindow.webContents.executeJavaScript(`
@@ -85,6 +89,10 @@ function createWindow() {
       }
       const image = await mainWindow.webContents.capturePage();
       fs.writeFileSync(process.env.GOLDID_DESKTOP_SCREENSHOT, image.toPNG());
+      } catch (e) {
+        console.error('screenshot capture failed: ' + e.message);
+        process.exitCode = 1;
+      }
       app.quit();
     });
   }
@@ -97,6 +105,7 @@ function publicConfig() {
     agent: {
       tools: cfg.agent?.tools !== false,
       mode: agentmode.getMode(cfg),
+      naming: naming.normalizeMode(cfg.agent?.naming),
       sandbox: sandbox.mode(cfg),
       imageProvider: cfg.agent?.imageProvider || '',
       imageModel: cfg.agent?.imageModel || '',
@@ -281,7 +290,9 @@ async function runDesktopTool(sender, call, sessionId) {
     if (call.name === 'generate_image') {
       const m = String(output).match(/Saved \d+ bytes to (.+)$/);
       if (m && fs.existsSync(m[1])) {
-        sender.send('tool:image', { path: m[1], url: 'file://' + m[1].replace(/\\/g, '/') });
+        // pathToFileURL builds a valid file:/// URL on every platform (a plain
+        // 'file://' + path breaks on Windows drive letters).
+        sender.send('tool:image', { path: m[1], url: pathToFileURL(path.resolve(m[1])).href });
       }
     }
     return output;

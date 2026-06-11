@@ -30,7 +30,7 @@ const skills = require('./lib/skills');
 const migrate = require('./lib/migrate');
 const updater = require('./lib/updater');
 
-const VERSION = '0.16.4.2';
+const VERSION = require('./package.json').version;
 const TOOL_TAG = '<tool_call>';
 
 const toolsEnabled = (cfg) => cfg.agent?.tools !== false; // default on
@@ -446,6 +446,7 @@ async function handleChat(text, conversation, ctx) {
     skillsCatalog: skills.catalog(process.cwd()),
   });
 
+  const turnStart = conversation.length;
   conversation.push({ role: 'user', content: text });
   const responseStartedAt = Date.now();
 
@@ -456,7 +457,9 @@ async function handleChat(text, conversation, ctx) {
     try {
       ({ full, shown, toolCalls } = await streamAssistant(cfg, system, conversation, useTools, schemas));
     } catch (e) {
-      conversation.pop(); // drop the turn we couldn't answer
+      // Drop the whole failed turn, including any partial tool exchanges —
+      // a dangling assistant tool_calls entry would poison the next request.
+      conversation.length = turnStart;
       ui.error(e.message);
       return;
     }

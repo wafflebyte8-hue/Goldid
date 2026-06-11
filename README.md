@@ -80,7 +80,20 @@ Running the installer manually still works too.
 the desktop app shares the same encrypted config, memories, skills, and sessions
 as the CLI.
 
-### What's new in 0.16.4.2
+### What's new in 0.16.5
+
+- upgraded Electron from 36 to 42, which fixes a string of upstream security
+  advisories (`npm audit` is clean again)
+- fixed one-shot prompts (`gd "question"`) hanging after the answer — a leftover
+  request timer kept the process alive for up to 30 minutes with local models
+- fixed generated-image previews in the desktop app on Windows (the file URL was
+  built without the `file:///` drive-letter form)
+- fixed a streaming error mid tool-use corrupting the conversation, which made
+  every later message in that chat fail with the provider
+- the CLI and desktop app now read their version from `package.json` instead of
+  keeping their own copies
+
+### What's new in 0.16.4.3
 
 - added chat naming modes with `/name never`, `/name auto`, and `/name always`
 - refreshed the CLI, desktop app, and website with the same cleaner dark UI

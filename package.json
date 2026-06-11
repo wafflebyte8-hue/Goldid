@@ -1,6 +1,6 @@
 {
   "name": "goldid",
-  "version": "0.16.4.2",
+  "version": "0.16.5",
   "description": "A chat-first agentic CLI with tools, memory, sessions, portable skills, and Hermes/OpenClaw migration.",
   "bin": {
     "goldid": "goldid.js",
@@ -12,22 +12,9 @@
     "desktop": "node desktop/launch.js"
   },
   "dependencies": {
-    "dompurify": "^3.4.8",
-    "electron": "^36.5.0",
+    "dompurify": "^3.4.9",
+    "electron": "^42.4.0",
     "marked": "^18.0.5"
   },
   "license": "MIT"
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
