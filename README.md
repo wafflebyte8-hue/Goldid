@@ -80,6 +80,31 @@ Running the installer manually still works too.
 the desktop app shares the same encrypted config, memories, skills, and sessions
 as the CLI.
 
+### What's new in 0.18.0.1
+
+- reworked the 3D project-graph controls so they feel right:
+  - **hold left-drag to rotate** — the graph now follows the cursor instead of
+    spinning the opposite way
+  - **WASD flies the camera, game style**: W/S move forward/back (into and out of
+    the graph), A/D strafe left/right; the scroll wheel zooms and Shift-drag pans
+  - the graph canvas takes keyboard focus the moment it opens (and after a drag),
+    so WASD works without clicking first, and an on-screen hint lists the controls
+
+### What's new in 0.18.0
+
+- the desktop app now works like a project workspace, similar to the Claude app:
+  - it launches into a plain chat — just you and the model, no tools, no graph
+  - a new **Projects** sidebar tab lets you create a project by picking a folder,
+    open recent projects, and close back to plain chat
+  - opening a project binds GolDid's working directory to that folder and unlocks
+    the agent tools, the approval-mode control, and the 3D codebase graph; closing
+    the project turns them back off
+  - the topbar shows the active project (with a one-click close), and the 3D graph
+    is now scoped to the open project's folder instead of wherever the app launched
+- projects are remembered between launches in `~/.goldid/projects.json` (the app
+  still always starts in plain chat); removing a project never touches the folder
+  on disk
+
 ### What's new in 0.17.1
 
 - the CLI now handles model-initiated chat termination too: when GolDid ends a

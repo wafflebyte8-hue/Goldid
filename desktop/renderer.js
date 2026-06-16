@@ -1,6 +1,8 @@
 'use strict';
 
-const state = { snapshot: null, messages: [], sessionId: null, activeTab: 'sessions', requestId: null, streamingNode: null, toolEvents: new Map(), skillRegistry: null, installingSkills: new Set(), skillsDialogView: 'installed', skillsDialogDetail: null, skillsExplorerKey: '', skillsPaneKey: '', chatEnded: null, graph: null };
+const state = { snapshot: null, messages: [], sessionId: null, activeTab: 'projects', requestId: null, streamingNode: null, toolEvents: new Map(), skillRegistry: null, installingSkills: new Set(), skillsDialogView: 'installed', skillsDialogDetail: null, skillsExplorerKey: '', skillsPaneKey: '', chatEnded: null, graph: null };
+const activeProject = () => state.snapshot?.activeProject || null;
+let projectPendingDelete = null;
 const graphView = { nodes: [], edges: [], query: '', zoom: 1, panX: 0, panY: 0, panZ: 0, rotX: 0, rotY: 0, rotZ: 0, dragging: false, dragMode: 'rotate', lastX: 0, lastY: 0, hover: null, raf: 0 };
 let sessionPendingDelete = null;
 let commandIndex = 0;
@@ -55,9 +57,116 @@ function renderStatus() {
   $('activeProvider').textContent = provider?.label || 'Not configured';
   $('activeModel').textContent = active.model || 'Open settings';
   $('connectionDot').classList.toggle('online', Boolean(provider && active.model));
-  $('workingDirectory').textContent = state.snapshot.cwd;
   $('modeSelect').value = state.snapshot.config.agent?.mode || 'ask';
   $('namingSelect').value = state.snapshot.config.agent?.naming || 'auto';
+  applyProjectMode();
+}
+
+// Reflect plain-chat vs in-project state across the chrome: the body class
+// hides/shows the agentic-only controls (mode, graph, close-project), the chip
+// names the active project, and the subtitle shows the working folder.
+function applyProjectMode() {
+  const project = activeProject();
+  document.body.classList.toggle('has-project', Boolean(project));
+  $('projectChipName').textContent = project ? project.name : 'No project';
+  $('projectChip').classList.toggle('active', Boolean(project));
+  $('workingDirectory').textContent = project ? project.path : 'Plain chat — open a project for tools and the codebase graph';
+}
+
+// --- projects -----------------------------------------------------------------
+
+function renderProjects(root) {
+  const project = activeProject();
+  const list = state.snapshot.projects || [];
+  const active = project
+    ? `<div class="section-label">Open project</div>
+       <div class="project-active list-item active">
+         <strong>${escapeHtml(project.name)}</strong>
+         <small>${escapeHtml(project.path)}</small>
+       </div>
+       <div class="project-active-actions">
+         <button class="secondary-button" data-open-graph type="button">Codebase graph</button>
+         <button class="secondary-button" data-close-project type="button">Close project</button>
+       </div>`
+    : '<div class="section-label">No project open</div><p class="section-hint">You\'re in plain chat. Open a project to give GolDid tools and the 3D codebase graph for that folder.</p>';
+
+  const others = list.filter((item) => !project || item.id !== project.id);
+  const rows = others.map((item, index) =>
+    `<div class="session-row" style="--item-index:${index}">
+       <button class="list-item" data-open-project="${escapeHtml(item.id)}"><strong>${escapeHtml(item.name)}</strong><small>${escapeHtml(item.path)}</small></button>
+       <button class="delete-session" data-delete-project="${escapeHtml(item.id)}" data-delete-name="${escapeHtml(item.name)}" title="Remove project" aria-label="Remove project"><img src="icons/trash.svg" alt=""></button>
+     </div>`
+  ).join('');
+
+  root.innerHTML = `${active}
+    <button class="primary-button project-new" data-new-project type="button"><img src="icons/plus.svg" alt="">New project…</button>
+    ${others.length ? `<div class="section-label">${project ? 'Other projects' : 'Recent projects'}</div>${rows}` : ''}`;
+
+  root.querySelector('[data-new-project]')?.addEventListener('click', createProject);
+  root.querySelector('[data-open-graph]')?.addEventListener('click', openGraphDialog);
+  root.querySelector('[data-close-project]')?.addEventListener('click', closeProject);
+  root.querySelectorAll('[data-open-project]').forEach((button) =>
+    button.addEventListener('click', () => openProject(button.dataset.openProject))
+  );
+  root.querySelectorAll('[data-delete-project]').forEach((button) =>
+    button.addEventListener('click', () => {
+      projectPendingDelete = { id: button.dataset.deleteProject, name: button.dataset.deleteName };
+      $('deleteDescription').textContent = `"${projectPendingDelete.name}" will be removed from GolDid. The folder on disk is left untouched.`;
+      $('deleteDialog').dataset.kind = 'project';
+      $('deleteDialog').showModal();
+    })
+  );
+}
+
+function applyProjectResult(result) {
+  if (!result || result.cancelled) return false;
+  state.snapshot.activeProject = result.activeProject;
+  state.snapshot.projects = result.projects;
+  return true;
+}
+
+async function createProject() {
+  try {
+    const result = await window.goldid.createProject({});
+    if (applyProjectResult(result)) {
+      await refresh();
+      if (result.activeProject) newChat();
+    }
+  } catch (error) {
+    showNotice(error.message || String(error));
+  }
+}
+
+async function openProject(id) {
+  try {
+    applyProjectResult(await window.goldid.openProject(id));
+    await refresh();
+    newChat();
+  } catch (error) {
+    showNotice(error.message || String(error));
+  }
+}
+
+async function closeProject() {
+  try {
+    applyProjectResult(await window.goldid.closeProject());
+    await refresh();
+    newChat();
+  } catch (error) {
+    showNotice(error.message || String(error));
+  }
+}
+
+async function deletePendingProject() {
+  if (!projectPendingDelete) return;
+  try {
+    applyProjectResult(await window.goldid.deleteProject(projectPendingDelete.id));
+  } catch (error) {
+    showNotice(error.message || String(error));
+  }
+  projectPendingDelete = null;
+  $('deleteDialog').close();
+  await refresh();
 }
 
 async function setMode(mode) {
@@ -315,7 +424,9 @@ async function executeTypedCommand(text) {
 
 function renderSidebar() {
   const root = $('sidebarContent');
-  if (state.activeTab === 'sessions') {
+  if (state.activeTab === 'projects') {
+    renderProjects(root);
+  } else if (state.activeTab === 'sessions') {
     root.innerHTML = '<div class="section-label">Recent conversations</div>' + state.snapshot.sessions.map((item, index) =>
       `<div class="session-row" style="--item-index:${index}"><button class="list-item" data-session="${escapeHtml(item.id)}"><strong>${escapeHtml(item.title)}</strong><small>${escapeHtml(item.updatedAt?.slice(0, 16).replace('T', ' ') || '')} · ${item.messageCount} messages</small></button><button class="delete-session" data-delete-session="${escapeHtml(item.id)}" data-delete-title="${escapeHtml(item.title)}" title="Delete conversation" aria-label="Delete conversation"><img src="icons/trash.svg" alt=""></button></div>`
     ).join('') || '<p class="section-label">No saved sessions</p>';
@@ -323,6 +434,7 @@ function renderSidebar() {
     root.querySelectorAll('[data-delete-session]').forEach((button) => button.addEventListener('click', () => {
       sessionPendingDelete = { id: button.dataset.deleteSession, title: button.dataset.deleteTitle };
       $('deleteDescription').textContent = `"${sessionPendingDelete.title}" will be permanently removed.`;
+      $('deleteDialog').dataset.kind = 'session';
       $('deleteDialog').showModal();
     }));
   } else if (state.activeTab === 'skills') {
@@ -621,7 +733,11 @@ async function uninstallSkill(name) {
 function renderMessages() {
   const root = $('messages');
   if (!state.messages.length) {
-    root.innerHTML = '<div class="empty-state"><div class="empty-mark"><img src="assets/goldid-logo.png" alt=""></div><h2>What are we working on?</h2><p>Ask a question, explore a project, or continue a saved conversation.</p></div>';
+    const project = activeProject();
+    const sub = project
+      ? `Working in <strong>${escapeHtml(project.name)}</strong>. GolDid can read, search, and edit files, run commands, and map this folder in the 3D codebase graph.`
+      : 'This is a plain chat. Open a project from the sidebar to give GolDid tools and the 3D codebase graph for a folder.';
+    root.innerHTML = `<div class="empty-state"><div class="empty-mark"><img src="assets/goldid-logo.png" alt=""></div><h2>What are we working on?</h2><p>${sub}</p></div>`;
     return;
   }
   root.innerHTML = state.messages.map((message) =>
@@ -676,8 +792,19 @@ function newChat() {
 }
 
 async function openGraphDialog() {
+  if (!activeProject()) {
+    showNotice('Open a project first.\n\nThe 3D codebase graph maps the files in a project folder, so it needs an open project.');
+    return;
+  }
   $('graphDialog').showModal();
   await loadGraph();
+  $('graphCanvas').focus(); // so WASD movement works without a click first
+}
+
+function closeGraph() {
+  graphKeys.clear();
+  cancelAnimationFrame(graphView.raf);
+  $('graphDialog').close();
 }
 
 async function loadGraph() {
@@ -804,9 +931,28 @@ function resizeGraph() {
   }
 }
 
+// WASD flies the camera (game style; held keys applied every frame for smooth
+// motion): W/S move forward/back (into and out of the graph), A/D strafe
+// left/right. Rotation stays on left-drag; the wheel zooms.
+const graphKeys = new Set();
+const GRAPH_KEYS = new Set(['w', 'a', 's', 'd']);
+
+function applyGraphKeys() {
+  if (!graphKeys.size) return;
+  const strafe = 18;
+  // Strafing the camera left makes the graph slide right, and vice versa.
+  if (graphKeys.has('a')) graphView.panX += strafe;
+  if (graphKeys.has('d')) graphView.panX -= strafe;
+  // Forward/back = move toward/away from the graph (dolly via zoom).
+  if (graphKeys.has('w')) graphView.zoom = Math.min(4, graphView.zoom * 1.03);
+  if (graphKeys.has('s')) graphView.zoom = Math.max(0.35, graphView.zoom * 0.97);
+  syncGraphControls();
+}
+
 function startGraph() {
   cancelAnimationFrame(graphView.raf);
   const tick = () => {
+    applyGraphKeys();
     stepGraph();
     drawGraph();
     graphView.raf = requestAnimationFrame(tick);
@@ -1182,8 +1328,21 @@ $('settingsButton').addEventListener('click', openSettings);
 $('providerSelect').addEventListener('change', syncProviderForm);
 $('fetchModelsButton').addEventListener('click', fetchModels);
 $('openDataButton').addEventListener('click', () => window.goldid.openPath(state.snapshot.dataDir));
+$('closeProjectButton').addEventListener('click', closeProject);
 $('visualizerButton').addEventListener('click', openGraphDialog);
-$('graphClose').addEventListener('click', () => $('graphDialog').close());
+$('graphClose').addEventListener('click', closeGraph);
+$('graphDialog').addEventListener('close', () => graphKeys.clear());
+
+// WASD/QE move the graph while it's open and the canvas (not a text field) has focus.
+document.addEventListener('keydown', (event) => {
+  const k = event.key.toLowerCase();
+  if (!GRAPH_KEYS.has(k) || !$('graphDialog').open) return;
+  const el = document.activeElement;
+  if (el && /^(input|textarea|select)$/i.test(el.tagName)) return; // typing in search/sliders
+  graphKeys.add(k);
+  event.preventDefault();
+});
+document.addEventListener('keyup', (event) => graphKeys.delete(event.key.toLowerCase()));
 $('graphRefresh').addEventListener('click', loadGraph);
 $('graphSearch').addEventListener('input', (event) => focusGraphSearch(event.target.value));
 ['graphRotX', 'graphRotY', 'graphRotZ', 'graphMoveX', 'graphMoveY', 'graphMoveZ'].forEach((id) => {
@@ -1195,6 +1354,7 @@ $('inlineApprove').addEventListener('click', () => answerApproval(true));
 $('stopButton').addEventListener('click', stopStreaming);
 
 $('graphCanvas').addEventListener('pointerdown', (event) => {
+  $('graphCanvas').focus(); // keep WASD working after a drag
   graphView.dragging = true;
   graphView.dragMode = event.shiftKey ? 'pan' : (event.altKey || event.button === 2 ? 'roll' : 'rotate');
   graphView.lastX = event.clientX;
@@ -1213,7 +1373,9 @@ $('graphCanvas').addEventListener('pointermove', (event) => {
       graphView.rotZ += dx * 0.01;
       graphView.panZ += dy * 2;
     } else {
-      graphView.rotY += dx * 0.01;
+      // Grab-and-turn: the graph follows the cursor. Dragging right spins the
+      // near face right (rotY -= dx), dragging down tips it down (rotX += dy).
+      graphView.rotY -= dx * 0.01;
       graphView.rotX += dy * 0.01;
     }
     graphView.lastX = event.clientX;
@@ -1248,12 +1410,13 @@ $('graphCanvas').addEventListener('pointerup', (event) => {
 });
 $('graphCanvas').addEventListener('wheel', (event) => {
   event.preventDefault();
-  if (event.ctrlKey) {
-    const scale = event.deltaY < 0 ? 1.12 : 0.9;
-    graphView.zoom = Math.min(4, Math.max(0.35, graphView.zoom * scale));
-  } else {
+  // Plain scroll zooms; Shift+scroll dollies through depth.
+  if (event.shiftKey) {
     graphView.panZ = Math.min(900, Math.max(-900, graphView.panZ - event.deltaY));
     syncGraphControls();
+  } else {
+    const scale = event.deltaY < 0 ? 1.12 : 0.9;
+    graphView.zoom = Math.min(4, Math.max(0.35, graphView.zoom * scale));
   }
 }, { passive: false });
 $('graphCanvas').addEventListener('contextmenu', (event) => event.preventDefault());
@@ -1295,12 +1458,16 @@ $('messages').addEventListener('click', (event) => {
 document.querySelector('.sidebar-footer')?.addEventListener('click', openSettings);
 $('cancelDeleteButton').addEventListener('click', () => {
   sessionPendingDelete = null;
+  projectPendingDelete = null;
   $('deleteDialog').close();
 });
-$('confirmDeleteButton').addEventListener('click', deletePendingSession);
+$('confirmDeleteButton').addEventListener('click', () => (
+  $('deleteDialog').dataset.kind === 'project' ? deletePendingProject() : deletePendingSession()
+));
 $('deleteDialog').addEventListener('cancel', (event) => {
   event.preventDefault();
   sessionPendingDelete = null;
+  projectPendingDelete = null;
   $('deleteDialog').close();
 });
 $('composer').addEventListener('submit', sendMessage);

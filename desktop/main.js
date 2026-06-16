@@ -3,8 +3,9 @@
 const path = require('path');
 const fs = require('fs');
 const { pathToFileURL } = require('url');
-const { app, BrowserWindow, ipcMain, shell } = require('electron');
+const { app, BrowserWindow, ipcMain, shell, dialog } = require('electron');
 const config = require('../lib/config');
+const projects = require('../lib/projects');
 const providers = require('../lib/providers');
 const prompt = require('../lib/prompt');
 const memory = require('../lib/memory');
@@ -41,6 +42,34 @@ if (process.platform === 'linux' && process.env.GOLDID_ELECTRON_GPU !== '1') {
 let mainWindow;
 const approvals = new Map();
 const activeRequests = new Map(); // requestId -> AbortController (for cancel)
+
+// The app launches in plain-chat mode with NO active project. Opening a project
+// binds the working directory to its folder and unlocks the agent tools + the
+// 3D codebase visualizer; closing it returns to plain chat. We capture the
+// launch directory so closing a project can restore it.
+const BASE_DIR = process.cwd();
+let activeProject = null;
+
+// Bind (or clear) the active project. Changing the real working directory is
+// the single lever that points everything that reads process.cwd() — the graph
+// scanner, skills discovery, project-context lookup, and relative-path tools —
+// at the project folder.
+function setActiveProject(project) {
+  const target = project && projects.exists(project) ? project.path : BASE_DIR;
+  try {
+    process.chdir(target);
+  } catch {
+    activeProject = null;
+    return;
+  }
+  activeProject = project && projects.exists(project) ? project : null;
+}
+
+// Tools (and therefore the agentic system prompt) are only active inside a
+// project. In plain chat the model just talks.
+function toolsActive(cfg) {
+  return Boolean(activeProject) && cfg.agent?.tools !== false;
+}
 
 if (process.env.GOLDID_DESKTOP_TEST_PROFILE) {
   app.setPath('userData', process.env.GOLDID_DESKTOP_TEST_PROFILE);
@@ -130,11 +159,50 @@ ipcMain.handle('app:snapshot', () => {
   return {
     config: publicConfig(),
     sessions: sessions.list().slice(0, 50),
-    skills: skills.listResult(process.cwd()).slice(0, 200),
+    skills: activeProject ? skills.listResult(process.cwd()).slice(0, 200) : [],
     memory: Object.fromEntries(memories.map((item) => [item.target, item])),
     cwd: process.cwd(),
     dataDir: config.CONFIG_DIR,
+    projects: projects.list(),
+    activeProject,
   };
+});
+
+// --- projects: create / open / close / delete --------------------------------
+
+ipcMain.handle('project:list', () => projects.list());
+
+// Open a native folder picker and register the chosen folder as a project,
+// then open it. Returns { activeProject, projects } or { cancelled: true }.
+ipcMain.handle('project:create', async (_, input = {}) => {
+  const result = await dialog.showOpenDialog(mainWindow, {
+    title: 'Choose a project folder',
+    properties: ['openDirectory', 'createDirectory'],
+  });
+  if (result.canceled || !result.filePaths.length) return { cancelled: true };
+  const project = projects.create({ name: input.name, path: result.filePaths[0] });
+  setActiveProject(project);
+  return { activeProject, projects: projects.list() };
+});
+
+ipcMain.handle('project:open', (_, id) => {
+  const project = projects.get(id);
+  if (!project) throw new Error('Project not found');
+  if (!projects.exists(project)) throw new Error(`Project folder is missing: ${project.path}`);
+  projects.touch(id);
+  setActiveProject(project);
+  return { activeProject, projects: projects.list() };
+});
+
+ipcMain.handle('project:close', () => {
+  setActiveProject(null);
+  return { activeProject, projects: projects.list() };
+});
+
+ipcMain.handle('project:delete', (_, id) => {
+  if (activeProject && activeProject.id === id) setActiveProject(null);
+  projects.remove(id);
+  return { activeProject, projects: projects.list() };
 });
 
 ipcMain.handle('config:save', (_, input) => {
@@ -233,7 +301,10 @@ ipcMain.handle('skill:market-detail', (_, id) => skills.registrySkillDetail(id))
 ipcMain.handle('skill:install', (_, id) => skills.installFromRegistry(id));
 ipcMain.handle('skill:uninstall', (_, name) => skills.uninstallInstalled(name, process.cwd()));
 ipcMain.handle('path:open', (_, target) => shell.openPath(target));
-ipcMain.handle('project:graph', () => projectGraph.build(process.cwd()));
+ipcMain.handle('project:graph', () => {
+  if (!activeProject) throw new Error('Open a project to see its codebase graph.');
+  return projectGraph.build(activeProject.path);
+});
 ipcMain.on('tool:approval-response', (_, payload) => {
   const resolve = approvals.get(payload.id);
   if (!resolve) return;
@@ -310,7 +381,9 @@ ipcMain.handle('chat:send', async (event, input) => {
   const def = providers.PROVIDERS[cfg.active.provider];
   const conversation = Array.isArray(input.messages) ? [...input.messages] : [];
   const sessionId = input.sessionId || sessions.newId();
-  const useTools = cfg.agent?.tools !== false;
+  // Tools (and the agentic prompt, project context, and skills catalog) are
+  // only active inside a project. With no project open this is a plain chat.
+  const useTools = toolsActive(cfg);
   const native = useTools && def.chat === 'openai';
   const toolsMode = useTools ? (native ? 'native' : 'text') : 'off';
   const system = prompt.buildSystemPrompt({
@@ -322,8 +395,8 @@ ipcMain.handle('chat:send', async (event, input) => {
     cwd: process.cwd(),
     namingMode: naming.normalizeMode(cfg.agent?.naming),
     memorySnapshot: memory.formatForPrompt({ includeEmpty: true }),
-    projectContext: projectContext.format(process.cwd()),
-    skillsCatalog: skills.catalog(process.cwd()),
+    projectContext: useTools ? projectContext.format(process.cwd()) : '',
+    skillsCatalog: useTools ? skills.catalog(process.cwd()) : '',
   });
   let finalText = '';
   let ended = null;

@@ -16,7 +16,8 @@
       </header>
       <button id="newChatButton" class="primary-button"><img src="icons/plus.svg" alt="">New conversation</button>
       <nav class="nav-tabs" aria-label="Sidebar views">
-        <button class="tab active" data-tab="sessions">Sessions</button>
+        <button class="tab active" data-tab="projects">Projects</button>
+        <button class="tab" data-tab="sessions">Sessions</button>
         <button class="tab" data-tab="skills">Skills</button>
         <button class="tab" data-tab="memory">Memory</button>
       </nav>
@@ -34,7 +35,12 @@
           <p id="workingDirectory"></p>
         </div>
         <div class="topbar-actions">
-          <label class="mode-field" title="How edits and commands are approved">
+          <div id="projectChip" class="project-chip" title="Active project">
+            <img src="icons/folder.svg" alt="">
+            <span id="projectChipName">No project</span>
+            <button id="closeProjectButton" class="chip-close agentic-only" type="button" title="Close project" aria-label="Close project">&times;</button>
+          </div>
+          <label class="mode-field agentic-only" title="How edits and commands are approved">
             <span>Mode</span>
             <select id="modeSelect">
               <option value="ask">Ask before edits</option>
@@ -43,7 +49,7 @@
               <option value="plan">Plan mode</option>
             </select>
           </label>
-          <button id="visualizerButton" class="secondary-button" type="button">Project graph</button>
+          <button id="visualizerButton" class="secondary-button agentic-only" type="button">Project graph</button>
           <button id="openDataButton" class="secondary-button"><img src="icons/folder.svg" alt="">Open data folder</button>
         </div>
       </header>
@@ -184,8 +190,9 @@
         <button id="graphRefresh" class="secondary-button" type="button">Refresh</button>
       </div>
       <div class="graph-stage">
-        <canvas id="graphCanvas" width="1200" height="720" aria-label="3D project graph"></canvas>
+        <canvas id="graphCanvas" width="1200" height="720" tabindex="0" aria-label="3D project graph. Left-drag to rotate, WASD to fly, scroll to zoom."></canvas>
         <div id="graphTooltip" class="graph-tooltip" hidden></div>
+        <div class="graph-help">Left-drag to rotate · <b>W/S</b> forward·back · <b>A/D</b> strafe · scroll to zoom · Shift-drag to pan</div>
       </div>
     </article>
   </dialog>

@@ -11,7 +11,7 @@ sandboxing, and TPM-backed protection of your API keys.
 This document describes **everything** about GolDid in detail: architecture,
 every module, every command, every tool, the prompt system, the security model,
 the on-disk layout, and the desktop app. It reflects the current code
-(version `0.17.1`).
+(version `0.18.0.1`).
 
 ---
 
@@ -893,6 +893,28 @@ subcommands.
 The Electron desktop app (Windows and Linux) shares the same `lib/` core and the
 same encrypted config, memories, skills, and sessions as the CLI.
 
+### Projects vs plain chat
+
+The desktop app launches in **plain chat**: just the model, with no agent tools,
+no project context, and no codebase graph. To do agentic work you create or open
+a **project**, which is a named workspace bound to a folder on disk:
+
+- The **Projects** sidebar tab lists your projects and a "New project…" button.
+  Creating a project opens a native folder picker; the chosen folder is
+  registered and opened. Opening a project `process.chdir()`s the main process
+  into that folder, so everything that reads the working directory — the codebase
+  graph, skills discovery, `GOLDID.md`/`AGENTS.md` lookup, and relative-path
+  tools — is scoped to the project.
+- Only inside a project are the agent tools active (`chat:send` forces
+  `toolsMode: 'off'` with no project open), and only inside a project is the 3D
+  **codebase graph** available — it maps the open project's folder.
+- The topbar shows the active project with a one-click **close**; closing returns
+  to plain chat and `chdir`s back to the launch directory. The agent-mode control
+  and graph button are hidden until a project is open (CSS `body.has-project`).
+- Projects persist in `~/.goldid/projects.json` (handled by `lib/projects.js`),
+  so they reappear in the list across restarts. The app always *starts* in plain
+  chat regardless. Removing a project only forgets it; the folder is untouched.
+
 ### Structure
 
 - **`launch.js`** - local-development launcher used by `npm run desktop`.
@@ -902,21 +924,26 @@ same encrypted config, memories, skills, and sessions as the CLI.
   logs startup output to `~/.goldid/desktop.log`.
 
 - **`main.js`** — Electron main process. Creates the window with
-  `contextIsolation: true` and `nodeIntegration: false`. Registers IPC handlers:
-  `app:snapshot`, `config:save`, `config:agent`, `config:sandbox`,
-  `config:imageModel`, `config:imageSetup`, `models:list`, `update:check`,
-  `update:run`, `session:load`, `session:delete`, `skill:view`, `path:open`,
-  `chat:send`, and approval responses. Runs the same unlimited agent loop as the
-  CLI, applying the sandbox and image helper in `runDesktopTool` and prompting
-  for approval on dangerous tools via the inline approval bar.
+  `contextIsolation: true` and `nodeIntegration: false`. Tracks the active
+  project and exposes the project lifecycle via IPC (`project:list`,
+  `project:create` — which opens the native folder picker, `project:open`,
+  `project:close`, `project:delete`) alongside `app:snapshot`, `config:save`,
+  `config:agent`, `config:sandbox`, `config:imageModel`, `config:imageSetup`,
+  `models:list`, `update:check`, `update:run`, `session:load`, `session:delete`,
+  `skill:view`, `path:open`, `project:graph`, `chat:send`, and approval
+  responses. Runs the same unlimited agent loop as the CLI (only when a project
+  is open), applying the sandbox and image helper in `runDesktopTool` and
+  prompting for approval on dangerous tools via the inline approval bar.
 - **`preload.js`** — exposes a fixed, named `window.goldid` API surface via
   `contextBridge` (snapshot, saveConfig, setAgent, setSandbox, setImageModel,
   setImageConfig, listModels, loadSession, deleteSession, viewSkill, openPath,
-  sendChat, checkUpdate, runUpdate, plus streaming/approval callbacks). Raw
-  `ipcRenderer` is **not** exposed.
-- **`renderer.js`** — UI logic: status, sidebar (sessions/skills/memory),
-  message rendering, the `/` command menu, settings dialog, update/status
-  details, and the image dialog. Assistant content is rendered through `marked`
+  listProjects, createProject, openProject, closeProject, deleteProject,
+  projectGraph, sendChat, checkUpdate, runUpdate, plus streaming/approval
+  callbacks). Raw `ipcRenderer` is **not** exposed.
+- **`renderer.js`** — UI logic: status, sidebar (projects/sessions/skills/memory),
+  the plain-chat ↔ project mode toggle (`body.has-project`), message rendering,
+  the `/` command menu, settings dialog, update/status details, the image dialog,
+  and the 3D codebase graph. Assistant content is rendered through `marked`
   + `DOMPurify.sanitize`; all other user/file-sourced strings go through
   `escapeHtml`. Detail dialogs are reused when already open so repeated status,
   help, update, skill, or memory actions do not throw `showModal()` errors.
@@ -1016,7 +1043,7 @@ Keep `~/.goldid/sessions` private (it contains chat messages and tool results).
 
 ---
 
-_This documentation reflects GolDid `0.17.1`. Behavior described here is taken
+_This documentation reflects GolDid `0.18.0.1`. Behavior described here is taken
 from the source under `goldid.js`, `lib/`, and `desktop/`._
 
 

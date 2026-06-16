@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
+  <script>document.documentElement.classList.add('js')</script>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="GolDid is a chat-first AI assistant for terminal and desktop, with local/cloud models, tools, memory, sessions, skills, updates, sandboxing, and TPM-backed key protection.">
   <title>GolDid - Terminal and Desktop AI Assistant</title>
@@ -15,38 +16,50 @@
       <span>GolDid</span>
     </a>
     <nav aria-label="Main navigation">
-      <a href="#install">Install</a>
       <a href="#features">Features</a>
       <a href="skills/">Skills</a>
       <a href="#desktop">Desktop</a>
       <a href="#security">Security</a>
+      <a class="nav-cta" href="#install">Install</a>
     </nav>
   </header>
 
   <main id="top">
     <section class="hero">
-      <div class="hero-media" aria-hidden="true">
-        <img src="assets/goldid-logo.png" alt="">
-      </div>
       <div class="hero-copy">
-        <p class="eyebrow">Terminal-first. Desktop-ready. Local or cloud.</p>
-        <h1>GolDid</h1>
-        <p class="lead">A chat-first AI assistant for developers who want one `gd` command, saved sessions, portable skills, file tools, web search, image generation, sandboxing, and protected API keys.</p>
+        <p class="eyebrow"><span class="dot-live" aria-hidden="true"></span> v0.18.0.1 — local &amp; cloud</p>
+        <h1>The AI that lives in your <span class="accent">terminal</span><span class="cursor-lg" aria-hidden="true"></span></h1>
+        <p class="lead">One <code>gd</code> command for chat, agent tools, saved sessions, portable skills, web search, image generation, sandboxing, and TPM-sealed API keys — on CLI and desktop, with any local or cloud model.</p>
         <div class="hero-actions">
-          <a class="button primary" href="#install">Install GolDid</a>
-          <a class="button secondary" href="https://github.com/wafflebyte8-hue/Goldid">View source</a>
+          <a class="button primary" href="#install"><span class="prompt" aria-hidden="true">$</span> install goldid</a>
+          <a class="button secondary" href="https://github.com/wafflebyte8-hue/Goldid">view source</a>
         </div>
         <div class="release-strip" aria-label="Current release highlights">
-          <span>v0.17.1</span>
-          <span>3D project graph visualizer</span>
-          <span>Smart chat closure</span>
-          <span>CLI /graph export</span>
+          <span>v0.18.0.1</span>
+          <span>Project workspaces</span>
+          <span>Plain chat by default</span>
+          <span>Folder-scoped 3D graph</span>
+        </div>
+      </div>
+      <div class="terminal" role="img" aria-label="A GolDid terminal session: the gd command drafts a pull request using a local model, reads files, passes tests, and keeps keys sealed in the TPM.">
+        <div class="term-bar" aria-hidden="true">
+          <span class="tdot"></span><span class="tdot"></span><span class="tdot"></span>
+          <span class="term-title">gd — ~/project</span>
+        </div>
+        <div class="term-body" aria-hidden="true">
+          <p class="line"><span class="prompt">$</span> <span class="cmd">gd</span> <span class="str">"draft a PR for today's changes"</span></p>
+          <p class="line muted">routing → local · llama3.1:8b · 0 tokens billed</p>
+          <p class="line ok">read 14 files in ./src</p>
+          <p class="line ok">ran tests — 42 passed</p>
+          <p class="line run">writing pull request…</p>
+          <p class="line spacer"></p>
+          <p class="line reply">PR ready. Keys never left the TPM.<span class="cursor"></span></p>
         </div>
       </div>
     </section>
 
     <section id="install" class="band install-band">
-      <div class="section-heading">
+      <div class="section-heading" data-reveal>
         <p class="eyebrow">Install</p>
         <h2>Run it from PowerShell, Bash, or the desktop launcher.</h2>
       </div>
@@ -72,24 +85,36 @@ gd update --force</code></pre>
     </section>
 
     <section id="features" class="band">
-      <div class="section-heading">
+      <div class="section-heading" data-reveal>
         <p class="eyebrow">Workflow</p>
         <h2>Built around the conversation, not a dashboard.</h2>
       </div>
       <div class="feature-grid">
-        <article>
+        <article data-reveal>
+          <span class="feature-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2Z"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20"/></svg>
+          </span>
           <h3>Local and cloud models</h3>
           <p>OpenAI, Anthropic, Gemini, xAI, DeepSeek, OpenRouter, Ollama, vLLM, and LM Studio sit behind one provider system.</p>
         </article>
-        <article>
+        <article data-reveal>
+          <span class="feature-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4l-6 6a1.5 1.5 0 0 0 2 2l6-6a4 4 0 0 0 5.4-5.4l-2.3 2.3-2-2Z"/></svg>
+          </span>
           <h3>Agent tools</h3>
           <p>Read files, search projects, run shell commands, write files, search the web, generate images, and update persistent memory.</p>
         </article>
-        <article>
+        <article data-reveal>
+          <span class="feature-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8m18 0a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2m18 0-9 6-9-6"/></svg>
+          </span>
           <h3>Saved context</h3>
           <p>Sessions, memory files, project instructions, and portable skills keep useful context available without pasting it every time.</p>
         </article>
-        <article>
+        <article data-reveal>
+          <span class="feature-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12.5 11 14.5 15.5 10M12 3l7.5 3v5.5c0 4.6-3.2 7.9-7.5 9-4.3-1.1-7.5-4.4-7.5-9V6L12 3Z"/></svg>
+          </span>
           <h3>Approval modes</h3>
           <p>Use ask, auto-edit, auto, or plan mode to control when edits and machine-affecting actions need approval.</p>
         </article>
@@ -97,7 +122,7 @@ gd update --force</code></pre>
     </section>
 
     <section id="skills" class="band skills-band">
-      <div class="section-heading">
+      <div class="section-heading" data-reveal>
         <p class="eyebrow">Skills</p>
         <h2>Download reusable skill packs from the community.</h2>
         <p>GolDid skills are portable folders with `SKILL.md` and `Version.js`. Each published skill gets a unique 4-digit id. Browse `/skills/`, open a detail page at `/skills/&lt;id&gt;/`, then install by id from the CLI or desktop.</p>
@@ -141,28 +166,79 @@ gd update --force</code></pre>
     </section>
 
     <section id="desktop" class="desktop-section">
-      <div class="desktop-copy">
+      <div class="desktop-copy" data-reveal>
         <p class="eyebrow">Desktop</p>
         <h2>A focused Electron shell for the same GolDid core.</h2>
         <p>The desktop app shares config, memory, sessions, skills, providers, sandbox settings, image setup, and update checks with the CLI. It adds Markdown rendering, a command menu, settings dialogs, sidebar browsing, and inline tool approvals. Linux launchers now force GTK 3 and write startup failures to `~/.goldid/desktop.log`.</p>
       </div>
-      <div class="app-frame" aria-label="GolDid desktop preview">
-        <div class="frame-sidebar">
-          <div class="mini-brand"><img src="assets/goldid-logo.png" alt="">GolDid</div>
-          <span></span><span></span><span></span>
+      <div class="app-frame" id="dtApp" role="img" aria-label="The GolDid desktop app live: a message is typed, GolDid runs read_file, search_text, write_file and shell tools, then streams a Markdown answer while API keys stay sealed in the TPM.">
+        <div class="dt-side">
+          <div class="dt-brand">
+            <span class="dt-logo"><img src="assets/goldid-logo.png" alt=""></span>
+            <div class="dt-brand-name"><strong>GolDid</strong><small>Desktop</small></div>
+            <img class="dt-icon dt-gear" src="icons/settings.svg" alt="" aria-hidden="true">
+          </div>
+          <div class="dt-newchat"><img class="dt-icon" src="icons/plus.svg" alt="" aria-hidden="true"> New conversation</div>
+          <div class="dt-tabs">
+            <span class="dt-tab active">Projects</span>
+            <span class="dt-tab">Sessions</span>
+            <span class="dt-tab">Skills</span>
+            <span class="dt-tab">Memory</span>
+          </div>
+          <div class="dt-side-body">
+            <div class="dt-label">Projects</div>
+            <div class="dt-session active">
+              <strong>GolDid</strong>
+              <small>~/Documents/Sandbox/GolDid</small>
+            </div>
+            <div class="dt-session">
+              <strong>hermes-migrate</strong>
+              <small>~/code/hermes-migrate</small>
+            </div>
+            <div class="dt-label" style="margin-top:6px">Recent</div>
+            <div class="dt-session">
+              <strong>Add dark-mode toggle</strong>
+              <small>just now · 8 messages</small>
+            </div>
+          </div>
+          <div class="dt-foot">
+            <span class="dt-dot"></span>
+            <div class="dt-brand-name"><strong>OpenAI</strong><small>chat-latest</small></div>
+          </div>
         </div>
-        <div class="frame-main">
-          <div class="frame-top"></div>
-          <div class="message assistant"></div>
-          <div class="message user"></div>
-          <div class="message assistant short"></div>
-          <div class="composer"></div>
+        <div class="dt-main">
+          <div class="dt-top">
+            <div class="dt-top-title">
+              <strong id="dtTitle">New conversation</strong>
+              <small>~/Documents/Sandbox/GolDid</small>
+            </div>
+            <div class="dt-top-actions">
+              <span class="dt-chip"><img class="dt-icon" src="icons/folder.svg" alt="" aria-hidden="true"> GolDid</span>
+              <span class="dt-field"><span class="dt-mode-label">Mode</span><span class="dt-select">Auto (model decides)</span></span>
+              <span class="dt-tbtn">Project graph</span>
+              <span class="dt-tbtn dt-tbtn-icon"><img class="dt-icon" src="icons/folder.svg" alt="" aria-hidden="true"> Open data folder</span>
+            </div>
+          </div>
+          <div class="dt-msgs" id="dtMsgs">
+            <div class="dt-empty">
+              <span class="dt-empty-mark"><img src="assets/goldid-logo.png" alt=""></span>
+              <h3>What are we working on?</h3>
+              <p>Ask a question, explore a project, or continue a saved conversation.</p>
+            </div>
+          </div>
+          <form class="dt-composer" id="dtComposer" onsubmit="return false">
+            <span class="dt-input" id="dtInput" data-placeholder="Message GolDid"></span>
+            <span class="dt-send" id="dtSend" aria-hidden="true">
+              <img class="dt-icon dt-send-icon" src="icons/send.svg" alt="">
+              <span class="dt-stop-glyph"></span>
+            </span>
+          </form>
         </div>
       </div>
     </section>
 
     <section id="security" class="band security-band">
-      <div class="section-heading">
+      <div class="section-heading" data-reveal>
         <p class="eyebrow">Security</p>
         <h2>Practical guardrails for local agent work.</h2>
       </div>
@@ -176,9 +252,221 @@ gd update --force</code></pre>
   </main>
 
   <footer>
-    <span>GolDid 0.17.1</span>
-    <a href="https://github.com/wafflebyte8-hue/Goldid">GitHub</a>
+    <span>GolDid 0.18.0.1 — MIT licensed</span>
+    <a href="https://github.com/wafflebyte8-hue/Goldid">GitHub →</a>
   </footer>
+
+  <script>
+    (function () {
+      const header = document.querySelector('.site-header');
+      const onScroll = () => header && header.classList.toggle('scrolled', window.scrollY > 8);
+      onScroll();
+      window.addEventListener('scroll', onScroll, { passive: true });
+
+      const reveals = document.querySelectorAll('[data-reveal]');
+      const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (reduce || !('IntersectionObserver' in window)) {
+        reveals.forEach((el) => el.classList.add('in'));
+        return;
+      }
+      const io = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('in');
+            io.unobserve(entry.target);
+          }
+        });
+      }, { rootMargin: '0px 0px -10% 0px', threshold: 0.08 });
+      reveals.forEach((el) => io.observe(el));
+    })();
+  </script>
+
+  <!-- Live desktop demo: types a prompt, runs real tools, streams the answer -->
+  <script>
+    (function () {
+      const app = document.getElementById('dtApp');
+      const msgs = document.getElementById('dtMsgs');
+      const input = document.getElementById('dtInput');
+      const send = document.getElementById('dtSend');
+      const composer = document.getElementById('dtComposer');
+      const titleEl = document.getElementById('dtTitle');
+      if (!app || !msgs || !input || !send) return;
+
+      const PROMPT = 'Add a dark-mode toggle to the site, then run the tests.';
+      const TITLE = 'Add dark-mode toggle';
+      const TOOLS = ['read_file', 'search_text', 'write_file', 'shell'];
+      const REPLY = [
+        { p: "Done. Here's what changed:" },
+        { ul: ['Added <code>data-theme</code> tokens + a toggle in <code>styles.css</code>', 'Saved the preference in <code>localStorage</code>'] },
+        { code: { label: 'bash', lines: ['$ npm test', "<span class=\"ok\">✓ 42 passed</span> in 3.1s"] } },
+        { p: 'Keys stayed sealed in the TPM.' }
+      ];
+      const TERMINAL_ICON = 'icons/terminal.svg';
+
+      const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+      let token = 0;
+
+      function el(tag, cls, html) {
+        const e = document.createElement(tag);
+        if (cls) e.className = cls;
+        if (html != null) e.innerHTML = html;
+        return e;
+      }
+      function emptyState() {
+        msgs.innerHTML = '<div class="dt-empty"><span class="dt-empty-mark"><img src="assets/goldid-logo.png" alt=""></span><h3>What are we working on?</h3><p>Ask a question, explore a project, or continue a saved conversation.</p></div>';
+      }
+      function scrollDown() { msgs.scrollTop = msgs.scrollHeight; }
+
+      function addMessage(role, bodyHtml) {
+        const wrap = el('div', 'dt-msg');
+        wrap.appendChild(el('span', 'dt-av ' + role, role === 'bot' ? 'G' : 'Y'));
+        const bubble = el('div', 'dt-bubble ' + role, bodyHtml || '');
+        wrap.appendChild(bubble);
+        msgs.appendChild(wrap);
+        scrollDown();
+        return bubble;
+      }
+      function addTool(name) {
+        const t = el('div', 'dt-tool running');
+        t.innerHTML = '<img class="dt-icon" src="' + TERMINAL_ICON + '" alt=""><span>' + name + ' · running</span>';
+        msgs.appendChild(t);
+        scrollDown();
+        return t;
+      }
+
+      const caret = el('span', 'dt-caret');
+
+      async function typeInto(node, text, tk) {
+        node.classList.add('typing');
+        node.textContent = '';
+        for (let i = 0; i < text.length; i++) {
+          if (tk !== token) return;
+          node.textContent += text[i];
+          await sleep(26 + Math.random() * 42);
+        }
+        node.classList.remove('typing');
+      }
+      async function streamWords(node, text, tk) {
+        const words = text.split(' ');
+        node.appendChild(caret);
+        for (let i = 0; i < words.length; i++) {
+          if (tk !== token) return;
+          node.insertBefore(document.createTextNode((i ? ' ' : '') + words[i]), caret);
+          scrollDown();
+          await sleep(45 + Math.random() * 55);
+        }
+      }
+
+      function renderStatic() {
+        msgs.innerHTML = '';
+        titleEl.textContent = TITLE;
+        addMessage('user', PROMPT);
+        TOOLS.forEach((name) => {
+          const t = el('div', 'dt-tool complete');
+          t.innerHTML = '<img class="dt-icon" src="' + TERMINAL_ICON + '" alt=""><span>' + name + ' · complete</span>';
+          msgs.appendChild(t);
+        });
+        const body = addMessage('bot', '');
+        REPLY.forEach((seg) => {
+          if (seg.p) body.appendChild(el('p', null, seg.p));
+          else if (seg.ul) body.appendChild(el('ul', null, seg.ul.map((li) => '<li>' + li + '</li>').join('')));
+          else if (seg.code) {
+            const c = el('div', 'dt-code');
+            c.appendChild(el('div', 'dt-code-label', seg.code.label));
+            c.appendChild(el('pre', null, '<code>' + seg.code.lines.join('\n') + '</code>'));
+            body.appendChild(c);
+          }
+        });
+      }
+
+      async function runOnce(tk) {
+        emptyState();
+        titleEl.textContent = 'New conversation';
+        input.textContent = '';
+        send.classList.remove('streaming');
+        await sleep(900); if (tk !== token) return;
+
+        composer.classList.add('focus');
+        await typeInto(input, PROMPT, tk); if (tk !== token) return;
+        await sleep(350); if (tk !== token) return;
+        input.textContent = '';
+        composer.classList.remove('focus');
+
+        msgs.innerHTML = '';
+        addMessage('user', PROMPT);
+        titleEl.textContent = TITLE;
+        send.classList.add('streaming');
+        await sleep(400); if (tk !== token) return;
+
+        for (const name of TOOLS) {
+          const t = addTool(name);
+          await sleep(520 + Math.random() * 360); if (tk !== token) return;
+          t.className = 'dt-tool complete';
+          t.querySelector('span').textContent = name + ' · complete';
+          await sleep(160); if (tk !== token) return;
+        }
+
+        const body = addMessage('bot', '');
+        for (const seg of REPLY) {
+          if (tk !== token) return;
+          if (seg.p) {
+            const p = el('p'); body.appendChild(p);
+            await streamWords(p, seg.p, tk);
+          } else if (seg.ul) {
+            const ul = el('ul'); body.appendChild(ul); ul.appendChild(caret);
+            for (const li of seg.ul) {
+              if (tk !== token) return;
+              ul.insertBefore(el('li', null, li), caret);
+              scrollDown();
+              await sleep(420);
+            }
+          } else if (seg.code) {
+            const c = el('div', 'dt-code');
+            c.appendChild(el('div', 'dt-code-label', seg.code.label));
+            const code = el('code');
+            const pre = el('pre'); pre.appendChild(code); c.appendChild(pre);
+            body.appendChild(c); body.appendChild(caret);
+            for (let i = 0; i < seg.code.lines.length; i++) {
+              if (tk !== token) return;
+              code.innerHTML = seg.code.lines.slice(0, i + 1).join('\n');
+              scrollDown();
+              await sleep(360);
+            }
+          }
+          await sleep(160);
+        }
+        if (caret.parentNode) caret.parentNode.removeChild(caret);
+        send.classList.remove('streaming');
+        await sleep(4200);
+      }
+
+      async function loop(tk) {
+        while (tk === token) {
+          await runOnce(tk);
+          if (tk !== token) return;
+        }
+      }
+
+      // Run only while in view; render a static finished state if reduced motion.
+      const io = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            if (reduce) { renderStatic(); io.disconnect(); return; }
+            token++; loop(token);
+          } else {
+            token++; // stop the current run
+            if (caret.parentNode) caret.parentNode.removeChild(caret);
+            emptyState();
+            titleEl.textContent = 'New conversation';
+            input.textContent = '';
+            send.classList.remove('streaming');
+          }
+        });
+      }, { threshold: 0.25 });
+      io.observe(app);
+    })();
+  </script>
 </body>
 </html>
 
