@@ -14,6 +14,7 @@ contextBridge.exposeInMainWorld('goldid', {
   listModels: (provider) => ipcRenderer.invoke('models:list', provider),
   loadSession: (id) => ipcRenderer.invoke('session:load', id),
   deleteSession: (id) => ipcRenderer.invoke('session:delete', id),
+  compactSession: (input) => ipcRenderer.invoke('session:compact', input),
   viewSkill: (name) => ipcRenderer.invoke('skill:view', name),
   skillRegistry: () => ipcRenderer.invoke('skill:registry'),
   marketSkillDetail: (id) => ipcRenderer.invoke('skill:market-detail', id),

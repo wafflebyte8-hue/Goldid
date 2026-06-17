@@ -35,6 +35,7 @@ const migrate = require('./lib/migrate');
 const updater = require('./lib/updater');
 const projectGraph = require('./lib/project-graph');
 const graphhtml = require('./lib/graphhtml');
+const compaction = require('./lib/compaction');
 
 const VERSION = require('./package.json').version;
 const TOOL_TAG = '<tool_call>';
@@ -1260,6 +1261,69 @@ function graphCmd(args) {
   console.log('');
 }
 
+function compactUsageLine(usage) {
+  const used = Number.isFinite(Number(usage.estimatedTokens)) ? Math.round(Number(usage.estimatedTokens)) : '?';
+  const total = Number.isFinite(Number(usage.contextLength)) ? Math.round(Number(usage.contextLength)) : '?';
+  return `~tokens: ${used} / ${total}`;
+}
+
+function compactSystemPrompt(cfg, ctx) {
+  const def = providers.PROVIDERS[cfg.active.provider];
+  const useTools = toolsEnabled(cfg);
+  const native = useTools && def.chat === 'openai';
+  return prompt.buildSystemPrompt({
+    kind: modelClass(def, cfg.active.model),
+    soul: prompt.loadSoul(),
+    toolsMode: useTools ? (native ? 'native' : 'text') : 'off',
+    mode: agentmode.getMode(cfg),
+    model: cfg.active.model,
+    cwd: process.cwd(),
+    namingMode: naming.normalizeMode(cfg.agent?.naming),
+    memorySnapshot: ctx.memorySnapshot || loadConversationMemory(ctx),
+    projectContext: projectContext.format(process.cwd()),
+    skillsCatalog: skills.catalog(process.cwd()),
+  });
+}
+
+async function compactCmd(args, ctx, conversation) {
+  const cfg = config.load();
+  if (!cfg.active.provider || !cfg.active.model) return ui.warning('No model configured yet - run /setup.');
+  const system = compactSystemPrompt(cfg, ctx);
+  const contextLength = await providers.fetchModelContextLength(
+    cfg.active.provider,
+    cfg.providers[cfg.active.provider] || {},
+    cfg.active.model,
+  ).catch(() => null);
+  const estimatedTokens = compaction.estimateMessages(conversation, system);
+  const usage = {
+    estimatedTokens,
+    contextLength,
+    autoCompactAt: contextLength ? Math.floor(contextLength * compaction.AUTO_COMPACT_RATIO) : null,
+  };
+  if ((args[0] || '').toLowerCase() === 'show') {
+    ui.panel(
+      [
+        ui.kv('usage', ui.amber(compactUsageLine(usage))),
+        ui.kv('auto compact at', usage.autoCompactAt ? ui.dim(`~${usage.autoCompactAt} tokens`) : ui.dim('?')),
+      ],
+      { title: ui.gold('Context'), maxWidth: 72 }
+    );
+    return;
+  }
+  const result = await compaction.compactMessages({ providers, cfg, messages: conversation });
+  conversation.splice(0, conversation.length, ...result.messages);
+  const afterTokens = compaction.estimateMessages(conversation, system);
+  if (ctx.sessionId) sessions.save(ctx.sessionId, conversation, { cwd: process.cwd() });
+  ui.panel(
+    [
+      result.compacted ? ui.gold('Conversation compacted.') : ui.dim('Nothing to compact yet.'),
+      ui.kv('before', ui.amber(compactUsageLine(usage))),
+      ui.kv('after', ui.amber(compactUsageLine({ ...usage, estimatedTokens: afterTokens }))),
+    ],
+    { title: ui.gold('Compact'), maxWidth: 72 }
+  );
+}
+
 function printHelp() {
   const rows = [
     ['/setup [provider]', 'configure provider, key/URL, and model'],
@@ -1286,6 +1350,8 @@ function printHelp() {
     ['/skills', 'list compatible installed skills'],
     ['/skill <name|install id>', 'inspect or install one skill'],
     ['/graph [path]', 'open the 3D project graph in a browser'],
+    ['/compact', 'compact older conversation context'],
+    ['/compact show', 'show estimated context tokens'],
     ['/migrate [source]', 'import Hermes/OpenClaw data'],
     ['/remember [target] <text>', 'save memory/user/personality'],
     ['/forget [target] <text>', 'remove a memory entry'],
@@ -1348,6 +1414,7 @@ const slash = {
   skills: { run: () => showSkills() },
   skill: { run: (args, ctx) => showSkill(args, ctx) },
   graph: { run: (args) => graphCmd(args) },
+  compact: { run: (args, ctx, convo) => compactCmd(args, ctx, convo) },
   migrate: { run: (args, ctx) => migrateCmd(args, ctx) },
   remember: { run: (args, ctx) => rememberCmd(args, ctx) },
   forget: { run: (args, ctx) => forgetCmd(args, ctx) },
@@ -1542,7 +1609,7 @@ function repl(ctx) {
 const UTILITY = new Set([
   'setup', 'use', 'model', 'models', 'providers', 'key', 'url',
   'agent', 'mode', 'sandbox', 'image', 'keystore', 'tools', 'soul', 'memory', 'remember', 'forget', 'config',
-  'update', 'graph',
+  'update', 'graph', 'compact',
   'sessions', 'session', 'name', 'resume', 'delete-session',
   'skills', 'skill',
   'migrate',

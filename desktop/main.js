@@ -292,6 +292,50 @@ ipcMain.handle('update:run', (_, opts = {}) => updater.update({
 
 ipcMain.handle('session:load', (_, id) => sessions.load(id));
 ipcMain.handle('session:delete', (_, id) => sessions.remove(id));
+ipcMain.handle('session:compact', async (_, input = {}) => {
+  const cfg = config.load();
+  if (!cfg.active.provider || !cfg.active.model) throw new Error('Configure a provider and model first.');
+  const def = providers.PROVIDERS[cfg.active.provider];
+  const conversation = Array.isArray(input.messages) ? [...input.messages] : [];
+  const sessionId = input.sessionId || sessions.newId();
+  const useTools = toolsActive(cfg);
+  const system = prompt.buildSystemPrompt({
+    kind: def.kind === 'cloud' || /:cloud\b/i.test(cfg.active.model) ? 'cloud' : 'local',
+    soul: prompt.loadSoul(),
+    toolsMode: useTools ? (def.chat === 'openai' ? 'native' : 'text') : 'off',
+    mode: agentmode.getMode(cfg),
+    model: cfg.active.model,
+    cwd: process.cwd(),
+    namingMode: naming.normalizeMode(cfg.agent?.naming),
+    memorySnapshot: memory.formatForPrompt({ includeEmpty: true }),
+    projectContext: useTools ? projectContext.format(process.cwd()) : '',
+    skillsCatalog: useTools ? skills.catalog(process.cwd()) : '',
+  });
+  const contextLength = await providers.fetchModelContextLength(
+    cfg.active.provider,
+    cfg.providers[cfg.active.provider] || {},
+    cfg.active.model,
+  ).catch(() => null);
+  const beforeTokens = compaction.estimateMessages(conversation, system);
+  const usageBase = {
+    estimatedTokens: beforeTokens,
+    contextLength,
+    autoCompactAt: contextLength ? Math.floor(contextLength * compaction.AUTO_COMPACT_RATIO) : null,
+  };
+  if (String(input.mode || '').toLowerCase() === 'show') {
+    return { sessionId, messages: conversation, compacted: false, usage: usageBase };
+  }
+  const result = await compaction.compactMessages({ providers, cfg, messages: conversation });
+  const afterTokens = compaction.estimateMessages(result.messages, system);
+  const saved = sessions.save(sessionId, result.messages, { cwd: process.cwd() });
+  return {
+    sessionId: saved.id,
+    title: saved.title,
+    messages: saved.messages,
+    compacted: result.compacted,
+    usage: { ...usageBase, beforeTokens, estimatedTokens: afterTokens },
+  };
+});
 ipcMain.handle('skill:view', (_, name) => {
   const skill = skills.find(name, process.cwd());
   if (!skill) throw new Error('Skill not found');

@@ -197,6 +197,35 @@ async function nameMode(mode) {
   }
 }
 
+function formatUsage(usage = {}) {
+  const used = Number.isFinite(Number(usage.estimatedTokens)) ? String(Math.round(Number(usage.estimatedTokens))) : '?';
+  const total = Number.isFinite(Number(usage.contextLength)) ? String(Math.round(Number(usage.contextLength))) : '?';
+  const auto = Number.isFinite(Number(usage.autoCompactAt)) ? `\nAuto compact at: ~${Math.round(Number(usage.autoCompactAt))} tokens` : '';
+  return `~tokens: ${used} / ${total}${auto}`;
+}
+
+async function compactCommand(mode = '') {
+  try {
+    const result = await window.goldid.compactSession({
+      sessionId: state.sessionId,
+      messages: state.messages,
+      mode,
+    });
+    if (String(mode).toLowerCase() === 'show') {
+      showNotice(formatUsage(result.usage));
+      return;
+    }
+    state.sessionId = result.sessionId;
+    state.messages = result.messages || state.messages;
+    if (result.title) $('conversationTitle').textContent = result.title;
+    renderMessages();
+    showNotice(result.compacted ? `Conversation compacted.\n\n${formatUsage(result.usage)}` : `Nothing to compact yet.\n\n${formatUsage(result.usage)}`);
+    await refresh();
+  } catch (error) {
+    showNotice(error.message || String(error));
+  }
+}
+
 const commands = [
   { usage: '/new', description: 'Start a new conversation', run: () => newChat() },
   { usage: '/reset', description: 'Start a new conversation', run: () => newChat() },
@@ -226,6 +255,8 @@ const commands = [
   { usage: '/tools', description: 'Show desktop agent tools', run: () => showToolHelp() },
   { usage: '/clear', description: 'Clear the current desktop transcript', run: () => newChat() },
   { usage: '/config', description: 'Open provider configuration', run: () => openSettings() },
+  { usage: '/compact', description: 'Compact older conversation context', run: () => compactCommand('') },
+  { usage: '/compact show', description: 'Show estimated context tokens', run: () => compactCommand('show') },
   { usage: '/help', description: 'Show available desktop commands', run: () => showCommandHelp() },
 ];
 
