@@ -4,3 +4,13 @@
 *.log
 node_modules/
 AI_VERSIONING_NOTES.local.md
+desktop-smoke.png
+goldid-commercial.mp4
+commercial/
+ui-ctx.js
+ui-live.js
+ffmpeg.exe
+ffprobe.exe
+analyze_track.py
+make_track.py
+use_track.js
