@@ -19,6 +19,7 @@ const keystore = require('../lib/keystore');
 const agentmode = require('../lib/agentmode');
 const updater = require('../lib/updater');
 const projectGraph = require('../lib/project-graph');
+const compaction = require('../lib/compaction');
 
 const VERSION = require('../package.json').version;
 
@@ -398,6 +399,26 @@ ipcMain.handle('chat:send', async (event, input) => {
     projectContext: useTools ? projectContext.format(process.cwd()) : '',
     skillsCatalog: useTools ? skills.catalog(process.cwd()) : '',
   });
+  let contextLength = null;
+  let estimatedTokens = null;
+  let compacted = false;
+  try {
+    contextLength = await providers.fetchModelContextLength(
+      cfg.active.provider,
+      cfg.providers[cfg.active.provider] || {},
+      cfg.active.model,
+    );
+    const check = compaction.shouldCompact({ messages: conversation, system, contextLength });
+    estimatedTokens = check.tokens;
+    if (check.compact) {
+      const result = await compaction.compactMessages({ providers, cfg, messages: conversation });
+      conversation.splice(0, conversation.length, ...result.messages);
+      compacted = result.compacted;
+      estimatedTokens = compaction.estimateMessages(conversation, system);
+    }
+  } catch {
+    contextLength = null;
+  }
   let finalText = '';
   let ended = null;
   const responseStartedAt = Date.now();
@@ -497,7 +518,19 @@ ipcMain.handle('chat:send', async (event, input) => {
       /* title generation is best effort */
     }
   }
-  return { sessionId, text: finalText, stopped, ended, title: generatedTitle || saved.title };
+  return {
+    sessionId,
+    text: finalText,
+    stopped,
+    ended,
+    title: generatedTitle || saved.title,
+    compacted,
+    usage: {
+      estimatedTokens,
+      contextLength,
+      autoCompactAt: contextLength ? Math.floor(contextLength * compaction.AUTO_COMPACT_RATIO) : null,
+    },
+  };
 });
 
 ipcMain.handle('chat:cancel', (_, requestId) => {

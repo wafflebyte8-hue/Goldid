@@ -1240,6 +1240,13 @@ async function sendMessage(event) {
       last.content += last.content ? `\n\n_(chat ended: ${result.ended.reason})_` : `_(chat ended: ${result.ended.reason})_`;
       $('messageInput').disabled = true;
     }
+    if (result.compacted) {
+      const usage = result.usage || {};
+      const detail = usage.contextLength
+        ? `Estimated ${usage.estimatedTokens || '?'} / ${usage.contextLength} tokens after compacting.`
+        : 'Older messages were summarized before sending.';
+      showNotice(`Conversation compacted automatically.\n\n${detail}`);
+    }
     $('conversationTitle').textContent = result.title || state.messages.find((item) => item.role === 'user')?.content.slice(0, 64) || 'Conversation';
     await refresh();
   } catch (error) {
